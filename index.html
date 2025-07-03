@@ -453,7 +453,7 @@
                         if (directionsData.status === 'success') {
                             setDirections(directionsData.directions);
                         }
-
+            
                         // Fetch operators
                         const operatorsResponse = await fetch(`${API_BASE_URL}/api/sv/data?id=${userId}`, {
                             headers: {
@@ -465,7 +465,7 @@
                         if (operatorsData.status === 'success') {
                             setOperators(operatorsData.operators);
                         }
-
+            
                         // Fetch evaluations
                         if (selectedOperator) {
                             const evaluationsResponse = await fetch(`${API_BASE_URL}/api/call_evaluations?operator_id=${selectedOperator.id}`, {
@@ -476,17 +476,17 @@
                             });
                             const evaluationsData = await evaluationsResponse.json();
                             if (evaluationsData.status === 'success') {
-                                setCalls(evaluationsData.evaluations.map(eval => ({
-                                    id: eval.call_number,
-                                    fileName: `Call ${eval.call_number}`,
-                                    totalScore: eval.score.toFixed(2),
-                                    date: eval.evaluation_date,
-                                    phoneNumber: eval.phone_number,
-                                    combinedComment: eval.comment,
+                                setCalls(evaluationsData.evaluations.map(evaluation => ({
+                                    id: evaluation.call_number,
+                                    fileName: `Call ${evaluation.call_number}`,
+                                    totalScore: evaluation.score.toFixed(2),
+                                    date: evaluation.evaluation_date,
+                                    phoneNumber: evaluation.phone_number,
+                                    combinedComment: evaluation.comment,
                                     selectedDirection: selectedOperator.direction,
                                     directions: directionsData.directions.filter(d => d.name === selectedOperator.direction),
                                     scores: [], // Backend doesn't store individual scores
-                                    criterionComments: eval.comment ? eval.comment.split('; ') : [],
+                                    criterionComments: evaluation.comment ? evaluation.comment.split('; ') : [],
                                     isDraft: false
                                 })));
                             }
