@@ -110,7 +110,6 @@
             const [phoneNumber, setPhoneNumber] = useState('');
             const [shownCriterionIndex, setShownCriterionIndex] = useState(null);
             const [assignedMonth, setAssignedMonth] = useState(selectedMonth);
-            const [callNumber, setCallNumber] = useState('');
 
             useEffect(() => {
                 if (isOpen && operator && directions.length > 0) {
@@ -120,7 +119,6 @@
                     setAudioUrl(null);
                     setPhoneNumber('');
                     setAssignedMonth(selectedMonth);
-                    setCallNumber('');
                     setShownCriterionIndex(null);
                 }
             }, [isOpen, operator, directions, selectedMonth]);
@@ -156,7 +154,6 @@
             const isSubmitDisabled = directions.length === 0 ||
                 directions[0]?.criteria.length === 0 ||
                 !(phoneNumber.length >= 10 && phoneNumber.length <= 30) ||
-                !callNumber ||
                 (directions[0]?.hasFileUpload && !callFile && !audioUrl) ||
                 scores.some((score, index) => score === 'Error' && !criterionComments[index].trim());
 
@@ -177,11 +174,10 @@
                 const evaluationData = {
                     evaluator: operator.supervisor_name,
                     operator: operator.name,
-                    call_number: parseInt(callNumber),
                     phone_number: phoneNumber,
                     score: totalScore,
                     comment: combinedComment,
-                    month: assignedMonth
+                    assignedMonth
                 };
 
                 try {
@@ -225,25 +221,6 @@
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
                         <h2 className="text-xl font-semibold mb-4">Evaluate Call - Operator: {operator?.name}</h2>
-                        <div className="mb-4">
-                            <label className="block mb-2 font-medium">Month</label>
-                            <input
-                                type="month"
-                                value={assignedMonth}
-                                onChange={(e) => setAssignedMonth(e.target.value)}
-                                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
-                        <div className="mb-4">
-                            <label className="block mb-2 font-medium">Call Number</label>
-                            <input
-                                type="number"
-                                value={callNumber}
-                                onChange={(e) => setCallNumber(e.target.value)}
-                                placeholder="Enter call number"
-                                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            />
-                        </div>
                         {directions[0]?.hasFileUpload && (
                             <div className="mb-4">
                                 <label className="block mb-2 font-medium">Upload Call (Required)</label>
@@ -487,7 +464,8 @@
                                     directions: directionsData.directions.filter(d => d.name === selectedOperator.direction),
                                     scores: [], // Backend doesn't store individual scores
                                     criterionComments: evaluation.comment ? evaluation.comment.split('; ') : [],
-                                    isDraft: false
+                                    isDraft: false,
+                                    assignedMonth: evaluation.assignedMonth
                                 })));
                             }
                         }
