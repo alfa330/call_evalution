@@ -30,572 +30,100 @@
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect } = React;
+        const API_BASE_URL = 'https://otp-wif3.onrender.com';
 
-        // Компонент модального окна для управления направлениями и критериями
-        const MonitoringScaleModal = ({ isOpen, onClose, onSave, initialDirections }) => {
-            const [directions, setDirections] = useState(initialDirections || []);
-            const [newDirectionName, setNewDirectionName] = useState('');
-            const [newDirectionFileUpload, setNewDirectionFileUpload] = useState(true);
-            const [editingDirectionIndex, setEditingDirectionIndex] = useState(null);
-            const [isEditingDirection, setIsEditingDirection] = useState(false);
-            const [selectedDirectionIndex, setSelectedDirectionIndex] = useState(0);
-            const [newCriterionName, setNewCriterionName] = useState('');
-            const [newCriterionWeight, setNewCriterionWeight] = useState('');
-            const [newCriterionValue, setNewCriterionValue] = useState('');
-            const [newCriterionCritical, setNewCriterionCritical] = useState(false);
-            const [editingCriterionIndex, setEditingCriterionIndex] = useState(null);
-            const [isEditingCriterion, setIsEditingCriterion] = useState(false);
-            const [activeTab, setActiveTab] = useState('directions');
+        // Login Modal Component
+        const LoginModal = ({ isOpen, onClose, onLogin }) => {
+            const [login, setLogin] = useState('');
+            const [password, setPassword] = useState('');
+            const [error, setError] = useState('');
 
-            const totalWeight = (directionIndex) => {
-                return directions[directionIndex]?.criteria
-                    .filter(criterion => !criterion.isCritical)
-                    .reduce((sum, c) => sum + Number(c.weight), 0) || 0;
-            };
-
-            const handleAddDirection = () => {
-                if (!newDirectionName) {
-                    alert('Please enter a direction name.');
-                    return;
-                }
-                setDirections([...directions, { name: newDirectionName, hasFileUpload: newDirectionFileUpload, criteria: [] }]);
-                setNewDirectionName('');
-                setNewDirectionFileUpload(true);
-                setIsEditingDirection(false);
-                setEditingDirectionIndex(null);
-                setSelectedDirectionIndex(directions.length);
-            };
-
-            const handleEditDirection = () => {
-                if (!newDirectionName) {
-                    alert('Please enter a direction name.');
-                    return;
-                }
-                setDirections(directions.map((direction, index) => 
-                    index === editingDirectionIndex 
-                        ? { ...direction, name: newDirectionName, hasFileUpload: newDirectionFileUpload } 
-                        : direction
-                ));
-                setNewDirectionName('');
-                setNewDirectionFileUpload(true);
-                setIsEditingDirection(false);
-                setEditingDirectionIndex(null);
-            };
-
-            const handleStartEditDirection = (index) => {
-                setNewDirectionName(directions[index].name);
-                setNewDirectionFileUpload(directions[index].hasFileUpload);
-                setEditingDirectionIndex(index);
-                setIsEditingDirection(true);
-                setSelectedDirectionIndex(index);
-            };
-
-            const handleDeleteDirection = (index) => {
-                setDirections(directions.filter((_, i) => i !== index));
-                if (selectedDirectionIndex === index) {
-                    setSelectedDirectionIndex(directions.length - 1 > 0 ? 0 : 0);
-                }
-                if (editingDirectionIndex === index) {
-                    setNewDirectionName('');
-                    setNewDirectionFileUpload(true);
-                    setIsEditingDirection(false);
-                    setEditingDirectionIndex(null);
-                }
-            };
-
-            const handleAddCriterion = () => {
-                if (!newCriterionName) {
-                    alert('Please enter a criterion name.');
-                    return;
-                }
-                if (!newCriterionCritical) {
-                    if (!newCriterionWeight) {
-                        alert('Please enter a weight for the non-critical criterion.');
-                        return;
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ login, password })
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        onLogin(data.apiKey, data.id, data.role);
+                        setError('');
+                        onClose();
+                    } else {
+                        setError(data.error || 'Invalid credentials');
                     }
-                    const weight = Number(newCriterionWeight);
-                    if (isNaN(weight) || weight <= 0) {
-                        alert('Weight must be a positive number.');
-                        return;
-                    }
-                    if (totalWeight(selectedDirectionIndex) + weight > 100) {
-                        alert('Total weight of non-critical criteria cannot exceed 100.');
-                        return;
-                    }
+                } catch (err) {
+                    setError('Failed to login: ' + err.message);
                 }
-                setDirections(directions.map((direction, index) => {
-                    if (index === selectedDirectionIndex) {
-                        return {
-                            ...direction,
-                            criteria: [...direction.criteria, {
-                                name: newCriterionName,
-                                weight: newCriterionCritical ? 0 : Number(newCriterionWeight),
-                                isCritical: newCriterionCritical,
-                                value: newCriterionValue || 'No description provided'
-                            }]
-                        };
-                    }
-                    return direction;
-                }));
-                resetCriterionForm();
-            };
-
-            const handleEditCriterion = () => {
-                if (!newCriterionName) {
-                    alert('Please enter a criterion name.');
-                    return;
-                }
-                if (!newCriterionCritical) {
-                    if (!newCriterionWeight) {
-                        alert('Please enter a weight for the non-critical criterion.');
-                        return;
-                    }
-                    const weight = Number(newCriterionWeight);
-                    if (isNaN(weight) || weight <= 0) {
-                        alert('Weight must be a positive number.');
-                        return;
-                    }
-                    const newTotalWeight = totalWeight(selectedDirectionIndex) - 
-                        (directions[selectedDirectionIndex].criteria[editingCriterionIndex]?.isCritical ? 0 : 
-                         directions[selectedDirectionIndex].criteria[editingCriterionIndex]?.weight || 0) + weight;
-                    if (newTotalWeight > 100) {
-                        alert('Total weight of non-critical criteria cannot exceed 100.');
-                        return;
-                    }
-                }
-                setDirections(directions.map((direction, index) => {
-                    if (index === selectedDirectionIndex) {
-                        return {
-                            ...direction,
-                            criteria: direction.criteria.map((criterion, i) => 
-                                i === editingCriterionIndex ? {
-                                    name: newCriterionName,
-                                    weight: newCriterionCritical ? 0 : Number(newCriterionWeight),
-                                    isCritical: newCriterionCritical,
-                                    value: newCriterionValue || 'No description provided'
-                                } : criterion
-                            )
-                        };
-                    }
-                    return direction;
-                }));
-                resetCriterionForm();
-            };
-
-            const handleStartEditCriterion = (index) => {
-                const criterion = directions[selectedDirectionIndex].criteria[index];
-                setNewCriterionName(criterion.name);
-                setNewCriterionWeight(criterion.isCritical ? '' : criterion.weight);
-                setNewCriterionValue(criterion.value);
-                setNewCriterionCritical(criterion.isCritical);
-                setEditingCriterionIndex(index);
-                setIsEditingCriterion(true);
-            };
-
-            const handleDeleteCriterion = (index) => {
-                setDirections(directions.map((direction, i) => {
-                    if (i === selectedDirectionIndex) {
-                        return {
-                            ...direction,
-                            criteria: direction.criteria.filter((_, j) => j !== index)
-                        };
-                    }
-                    return direction;
-                }));
-                if (editingCriterionIndex === index) {
-                    resetCriterionForm();
-                }
-            };
-
-            const resetCriterionForm = () => {
-                setNewCriterionName('');
-                setNewCriterionWeight('');
-                setNewCriterionValue('');
-                setNewCriterionCritical(false);
-                setEditingCriterionIndex(null);
-                setIsEditingCriterion(false);
-            };
-
-            const handleSave = () => {
-                const invalidDirection = directions.find((direction, index) => 
-                    direction.criteria.some(c => !c.isCritical) && totalWeight(index) !== 100
-                );
-                if (invalidDirection) {
-                    alert(`Total weight of non-critical criteria in "${invalidDirection.name}" must equal 100. Current: ${totalWeight(directions.indexOf(invalidDirection))}/100`);
-                    return;
-                }
-                onSave(directions);
-                onClose();
             };
 
             if (!isOpen) return null;
 
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-xl font-semibold mb-4">Monitoring Scale</h2>
-                        
-                        <div className="flex mb-4">
-                            <button
-                                className={`px-4 py-2 mr-2 rounded ${activeTab === 'directions' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
-                                onClick={() => setActiveTab('directions')}
-                            >
-                                Directions
-                            </button>
-                            <button
-                                className={`px-4 py-2 rounded ${activeTab === 'criteria' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-700'}`}
-                                onClick={() => setActiveTab('criteria')}
-                            >
-                                Criteria
-                            </button>
-                        </div>
-
-                        {activeTab === 'directions' && (
-                            <div>
-                                <div className="mb-4">
-                                    <label className="block mb-2 font-medium">
-                                        {isEditingDirection ? `Editing Direction: ${directions[editingDirectionIndex]?.name}` : 'New Direction'}
-                                    </label>
-                                    <div className="flex flex-col space-y-2">
-                                        <input
-                                            type="text"
-                                            value={newDirectionName}
-                                            onChange={(e) => setNewDirectionName(e.target.value)}
-                                            placeholder="Direction name"
-                                            className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                        <div className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                checked={newDirectionFileUpload}
-                                                onChange={(e) => setNewDirectionFileUpload(e.target.checked)}
-                                                className="mr-2"
-                                            />
-                                            <label className="text-sm font-medium">File Upload Required</label>
-                                        </div>
-                                        <div className="flex space-x-2">
-                                            <button
-                                                onClick={isEditingDirection ? handleEditDirection : handleAddDirection}
-                                                className={`p-2 rounded text-white ${
-                                                    isEditingDirection ? 'bg-blue-500 hover:bg-blue-600' : 'bg-green-500 hover:bg-green-600'
-                                                }`}
-                                            >
-                                                {isEditingDirection ? 'Save Changes' : 'Add Direction'}
-                                            </button>
-                                            {isEditingDirection && (
-                                                <button
-                                                    onClick={() => {
-                                                        setNewDirectionName('');
-                                                        setNewDirectionFileUpload(true);
-                                                        setIsEditingDirection(false);
-                                                        setEditingDirectionIndex(null);
-                                                    }}
-                                                    className="p-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-                                                >
-                                                    Cancel
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="mb-4">
-                                    <h3 className="text-lg font-medium mb-2">Directions</h3>
-                                    {directions.length === 0 ? (
-                                        <p className="text-gray-500 italic">No directions added.</p>
-                                    ) : (
-                                        <ul className="space-y-2 max-h-40 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                                            {directions.map((direction, index) => (
-                                                <li 
-                                                    key={index} 
-                                                    className="flex justify-between items-center bg-white p-2 rounded-md shadow-sm border border-gray-200 animate-fade-in"
-                                                >
-                                                    <div className="flex items-center space-x-2">
-                                                        <svg
-                                                            className={`w-4 h-4 ${direction.hasFileUpload ? 'text-blue-500' : 'text-gray-500'}`}
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d={direction.hasFileUpload ? 'M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12' : 'M9 12h6m-3-3v6'}
-                                                            />
-                                                        </svg>
-                                                        <span className="text-sm font-medium text-gray-800">
-                                                            {direction.name} {direction.hasFileUpload ? '(File Required)' : '(No File)'}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex space-x-2">
-                                                        <button
-                                                            onClick={() => handleStartEditDirection(index)}
-                                                            className="text-blue-500 hover:text-blue-700 p-1"
-                                                            title="Edit direction"
-                                                        >
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.29 2.29 0 113.232 3.232L6.5 20.5l-3.5 1 1-3.5L17.768 4.232z" />
-                                                            </svg>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteDirection(index)}
-                                                            className="text-red-500 hover:text-red-700 p-1"
-                                                            title="Delete direction"
-                                                        >
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                </div>
+                    <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md">
+                        <h2 className="text-xl font-semibold mb-4">Login</h2>
+                        {error && <p className="text-red-500 mb-4">{error}</p>}
+                        <div className="space-y-4">
+                            <input
+                                type="text"
+                                value={login}
+                                onChange={(e) => setLogin(e.target.value)}
+                                placeholder="Login"
+                                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <input
+                                type="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                placeholder="Password"
+                                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                            <div className="flex justify-between">
+                                <button
+                                    onClick={handleSubmit}
+                                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                                >
+                                    Login
+                                </button>
+                                <button
+                                    onClick={onClose}
+                                    className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                                >
+                                    Cancel
+                                </button>
                             </div>
-                        )}
-
-                        {activeTab === 'criteria' && (
-                            <div>
-                                <div className="mb-4">
-                                    <label className="block mb-2 font-medium">Select Direction for Criteria</label>
-                                    <select
-                                        value={selectedDirectionIndex}
-                                        onChange={(e) => setSelectedDirectionIndex(Number(e.target.value))}
-                                        className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        disabled={directions.length === 0}
-                                    >
-                                        {directions.length === 0 ? (
-                                            <option value="">No directions available</option>
-                                        ) : (
-                                            directions.map((direction, index) => (
-                                                <option key={index} value={index}>{direction.name}</option>
-                                            ))
-                                        )}
-                                    </select>
-                                </div>
-
-                                <div className="mb-4">
-                                    <label className="block mb-2 font-medium">
-                                        {isEditingCriterion ? `Editing Criterion: ${directions[selectedDirectionIndex]?.criteria[editingCriterionIndex]?.name}` : 'New Criterion'}
-                                    </label>
-                                    <div className="flex flex-col space-y-2">
-                                        <input
-                                            type="text"
-                                            value={newCriterionName}
-                                            onChange={(e) => setNewCriterionName(e.target.value)}
-                                            placeholder="Criterion name"
-                                            className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            disabled={directions.length === 0}
-                                        />
-                                        {!newCriterionCritical && (
-                                            <input
-                                                type="number"
-                                                value={newCriterionWeight}
-                                                onChange={(e) => setNewCriterionWeight(e.target.value)}
-                                                placeholder="Weight"
-                                                min="1"
-                                                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                                disabled={directions.length === 0}
-                                            />
-                                        )}
-                                        <textarea
-                                            value={newCriterionValue}
-                                            onChange={(e) => setNewCriterionValue(e.target.value)}
-                                            placeholder="Criterion description (optional)"
-                                            className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                            rows={3}
-                                            disabled={directions.length === 0}
-                                        />
-                                        <div className="flex items-center">
-                                            <input
-                                                type="checkbox"
-                                                checked={newCriterionCritical}
-                                                onChange={(e) => {
-                                                    setNewCriterionCritical(e.target.checked);
-                                                    if (e.target.checked) setNewCriterionWeight('');
-                                                }}
-                                                className="mr-2"
-                                                disabled={directions.length === 0}
-                                            />
-                                            <label className="text-sm font-medium">Critical (sets score to 0 if Error, no weight)</label>
-                                        </div>
-                                        <div className="flex space-x-2">
-                                            <button
-                                                onClick={isEditingCriterion ? handleEditCriterion : handleAddCriterion}
-                                                className={`w-full p-2 rounded text-white ${
-                                                    isEditingCriterion ? 'bg-blue-500 hover:bg-blue-600' : 'bg-green-500 hover:bg-green-600'
-                                                } ${directions.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                                disabled={directions.length === 0}
-                                            >
-                                                {isEditingCriterion ? 'Save Changes' : 'Add Criterion'}
-                                            </button>
-                                            {isEditingCriterion && (
-                                                <button
-                                                    onClick={resetCriterionForm}
-                                                    className="w-full p-2 bg-gray-500 text-white rounded hover:bg-gray-600"
-                                                >
-                                                    Cancel Editing
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="mb-4 max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                                    <h3 className="text-lg font-medium mb-2">Criteria</h3>
-                                    {directions.length === 0 || directions[selectedDirectionIndex].criteria.length === 0 ? (
-                                        <p className="text-gray-500 italic">No criteria added for this direction.</p>
-                                    ) : (
-                                        <ul className="space-y-2">
-                                            {directions[selectedDirectionIndex].criteria.map((criterion, critIndex) => (
-                                                <li 
-                                                    key={critIndex} 
-                                                    className="flex justify-between items-center bg-white p-2 rounded-md shadow-sm border border-gray-200 animate-fade-in"
-                                                >
-                                                    <div className="flex items-center space-x-2">
-                                                        <svg
-                                                            className={`w-4 h-4 ${criterion.isCritical ? 'text-red-500' : 'text-green-500'}`}
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d={criterion.isCritical ? 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' : 'M5 13l4 4L19 7'}
-                                                            />
-                                                        </svg>
-                                                        <span className="text-sm font-medium text-gray-800">
-                                                            {criterion.name} {criterion.isCritical ? '(Critical)' : `(${criterion.weight}%)`}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex space-x-2">
-                                                        <button
-                                                            onClick={() => handleStartEditCriterion(critIndex)}
-                                                            className="text-blue-500 hover:text-blue-700 p-1"
-                                                            title="Edit criterion"
-                                                        >
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.29 2.29 0 113.232 3.232L6.5 20.5l-3.5 1 1-3.5L17.768 4.232z" />
-                                                            </svg>
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleDeleteCriterion(critIndex)}
-                                                            className="text-red-500 hover:text-red-700 p-1"
-                                                            title="Delete criterion"
-                                                        >
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    )}
-                                    {directions.length > 0 && (
-                                        <p className={`mt-2 text-sm ${totalWeight(selectedDirectionIndex) !== 100 && directions[selectedDirectionIndex].criteria.some(c => !c.isCritical) ? 'text-red-500' : 'text-green-500'}`}>
-                                            Total Weight (non-critical): {totalWeight(selectedDirectionIndex)}/100
-                                        </p>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        <div className="flex justify-between">
-                            <button
-                                onClick={handleSave}
-                                className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                            >
-                                Save
-                            </button>
-                            <button
-                                onClick={onClose}
-                                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-                            >
-                                Cancel
-                            </button>
                         </div>
                     </div>
                 </div>
             );
         };
 
-        // Компонент модального окна для оценки звонка
-        const EvaluationModal = ({ isOpen, onClose, onSubmit, initialStage = 1, callId = null, directions, existingAudioUrl = null, calls, selectedMonth }) => {
-            const [stage, setStage] = useState(initialStage);
+        // Evaluation Modal Component
+        const EvaluationModal = ({ isOpen, onClose, onSubmit, directions, operator, selectedMonth, apiKey, userId }) => {
             const [callFile, setCallFile] = useState(null);
-            const [audioUrl, setAudioUrl] = useState(existingAudioUrl);
-            const [selectedDirectionIndex, setSelectedDirectionIndex] = useState(0);
+            const [audioUrl, setAudioUrl] = useState(null);
             const [scores, setScores] = useState([]);
             const [criterionComments, setCriterionComments] = useState([]);
             const [phoneNumber, setPhoneNumber] = useState('');
             const [shownCriterionIndex, setShownCriterionIndex] = useState(null);
             const [assignedMonth, setAssignedMonth] = useState(selectedMonth);
+            const [callNumber, setCallNumber] = useState('');
 
             useEffect(() => {
-                if (isOpen) {
-                    if (callId && calls) {
-                        const call = calls.find(c => c.id === callId);
-                        if (call && call.selectedDirection && call.directions) {
-                            const dirIndex = directions.findIndex(d => d.name === call.selectedDirection);
-                            if (dirIndex !== -1) {
-                                setSelectedDirectionIndex(dirIndex);
-                                setStage(2); // Все черновики начинаются с этапа 2
-                                const newScores = directions[dirIndex].criteria.map(criterion => {
-                                    const draftIndex = call.directions[0].criteria.findIndex(c => c.name === criterion.name);
-                                    return draftIndex !== -1 ? call.scores[draftIndex] : 'Correct';
-                                });
-                                const newComments = directions[dirIndex].criteria.map(criterion => {
-                                    const draftIndex = call.directions[0].criteria.findIndex(c => c.name === criterion.name);
-                                    return draftIndex !== -1 ? call.criterionComments[draftIndex] || '' : '';
-                                });
-                                setScores(newScores);
-                                setCriterionComments(newComments);
-                                setAudioUrl(call.audioUrl || existingAudioUrl);
-                                setPhoneNumber(call.phoneNumber || '');
-                                setAssignedMonth(call.assignedMonth || selectedMonth);
-                            } else {
-                                setSelectedDirectionIndex(0);
-                                setStage(directions[0]?.hasFileUpload ? 1 : 2);
-                                setScores(directions[0]?.criteria.map(() => 'Correct') || []);
-                                setCriterionComments(directions[0]?.criteria.map(() => '') || []);
-                                setPhoneNumber('');
-                                setAssignedMonth(selectedMonth);
-                            }
-                        } else {
-                            setSelectedDirectionIndex(0);
-                            setStage(directions[0]?.hasFileUpload ? 1 : 2);
-                            setScores(directions[0]?.criteria.map(() => 'Correct') || []);
-                            setCriterionComments(directions[0]?.criteria.map(() => '') || []);
-                            setPhoneNumber('');
-                            setAssignedMonth(selectedMonth);
-                        }
-                    } else {
-                        setSelectedDirectionIndex(0);
-                        setStage(1); // Новые оценки начинаются с этапа 1
-                        setScores(directions[0]?.criteria.map(() => 'Correct') || []);
-                        setCriterionComments(directions[0]?.criteria.map(() => '') || []);
-                        setPhoneNumber('');
-                        setAssignedMonth(selectedMonth);
-                    }
+                if (isOpen && operator && directions.length > 0) {
+                    setScores(directions[0].criteria.map(() => 'Correct'));
+                    setCriterionComments(directions[0].criteria.map(() => ''));
                     setCallFile(null);
-                    setAudioUrl(existingAudioUrl);
+                    setAudioUrl(null);
+                    setPhoneNumber('');
+                    setAssignedMonth(selectedMonth);
+                    setCallNumber('');
                     setShownCriterionIndex(null);
                 }
-            }, [isOpen, initialStage, directions, existingAudioUrl, callId, calls, selectedMonth]);
-
-            useEffect(() => {
-                if (isOpen && stage === 2 && directions[selectedDirectionIndex]) {
-                    setScores(directions[selectedDirectionIndex].criteria.map(() => 'Correct'));
-                    setCriterionComments(directions[selectedDirectionIndex].criteria.map(() => ''));
-                }
-            }, [selectedDirectionIndex, stage, directions]);
+            }, [isOpen, operator, directions, selectedMonth]);
 
             const handleFileChange = (e) => {
                 const file = e.target.files[0];
@@ -625,112 +153,70 @@
                 setShownCriterionIndex(shownCriterionIndex === index ? null : index);
             };
 
-            const handleNextStage = () => {
-                if (directions.length === 0) {
-                    alert('No directions available. Please set up directions in Monitoring Scale.');
-                    return;
-                }
-                setStage(2);
-            };
-
-            const isSubmitDisabled = stage === 1 || 
-                directions.length === 0 || 
-                directions[selectedDirectionIndex]?.criteria.length === 0 ||
+            const isSubmitDisabled = directions.length === 0 ||
+                directions[0]?.criteria.length === 0 ||
                 !(phoneNumber.length >= 10 && phoneNumber.length <= 30) ||
-                (directions[selectedDirectionIndex]?.hasFileUpload && !callFile && !audioUrl) ||
+                !callNumber ||
+                (directions[0]?.hasFileUpload && !callFile && !audioUrl) ||
                 scores.some((score, index) => score === 'Error' && !criterionComments[index].trim());
 
-            const handleSubmit = () => {
+            const handleSubmit = async () => {
                 if (isSubmitDisabled) return;
-                const selectedDirection = directions[selectedDirectionIndex]?.name;
-                const criteria = directions[selectedDirectionIndex]?.criteria || [];
+                const criteria = directions[0]?.criteria || [];
                 const hasCriticalError = criteria.some((criterion, index) => 
                     criterion.isCritical && scores[index] === 'Error'
                 );
-                const totalScore = hasCriticalError ? '0.00' : criteria.reduce((sum, criterion, index) => {
+                const totalScore = hasCriticalError ? 0 : criteria.reduce((sum, criterion, index) => {
                     return sum + (!criterion.isCritical && (scores[index] === 'Correct' || scores[index] === 'N/A') ? criterion.weight : 0);
-                }, 0).toFixed(2);
+                }, 0);
                 const combinedComment = criterionComments
                     .map((comment, index) => comment ? `${criteria[index].name}: ${comment}` : '')
                     .filter(comment => comment)
                     .join('; ');
-                onSubmit({ 
-                    callFile, 
-                    scores, 
-                    criterionComments, 
-                    totalScore, 
-                    combinedComment, 
-                    audioUrl: directions[selectedDirectionIndex].hasFileUpload ? audioUrl : null, 
-                    isDraft: false, 
-                    selectedDirection,
-                    directions: [{ 
-                        name: selectedDirection, 
-                        hasFileUpload: directions[selectedDirectionIndex].hasFileUpload, 
-                        criteria 
-                    }],
-                    phoneNumber,
-                    assignedMonth 
-                }, callId);
-                setStage(1);
-                setCallFile(null);
-                setAudioUrl(null);
-                setScores(directions[0]?.criteria.map(() => 'Correct') || []);
-                setCriterionComments(directions[0]?.criteria.map(() => '') || []);
-                setPhoneNumber('');
-                setSelectedDirectionIndex(0);
-                setShownCriterionIndex(null);
-                setAssignedMonth(selectedMonth);
-                onClose();
-            };
 
-            const handlePostpone = () => {
-                if (directions[selectedDirectionIndex]?.hasFileUpload && !callFile && !audioUrl) {
-                    alert('Please upload an audio file before postponing.');
-                    return;
+                const evaluationData = {
+                    evaluator: operator.supervisor_name,
+                    operator: operator.name,
+                    call_number: parseInt(callNumber),
+                    phone_number: phoneNumber,
+                    score: totalScore,
+                    comment: combinedComment,
+                    month: assignedMonth
+                };
+
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/call_evaluation`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-API-Key': apiKey,
+                            'X-User-Id': userId
+                        },
+                        body: JSON.stringify(evaluationData)
+                    });
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        onSubmit({
+                            ...evaluationData,
+                            totalScore: totalScore.toFixed(2),
+                            selectedDirection: directions[0]?.name,
+                            directions: [{ 
+                                name: directions[0]?.name, 
+                                hasFileUpload: directions[0]?.hasFileUpload, 
+                                criteria 
+                            }],
+                            scores,
+                            criterionComments,
+                            audioUrl: directions[0]?.hasFileUpload ? audioUrl : null,
+                            assignedMonth
+                        });
+                        onClose();
+                    } else {
+                        alert('Failed to submit evaluation: ' + result.error);
+                    }
+                } catch (err) {
+                    alert('Failed to submit evaluation: ' + err.message);
                 }
-                if (phoneNumber.length < 10) {
-                    alert('Please enter a valid phone number (minimum 10 characters).');
-                    return;
-                }
-                const selectedDirection = directions[selectedDirectionIndex]?.name;
-                const criteria = directions[selectedDirectionIndex]?.criteria || [];
-                const hasCriticalError = criteria.some((criterion, index) => 
-                    criterion.isCritical && scores[index] === 'Error'
-                );
-                const totalScore = hasCriticalError ? '0.00' : criteria.reduce((sum, criterion, index) => {
-                    return sum + (!criterion.isCritical && (scores[index] === 'Correct' || scores[index] === 'N/A') ? criterion.weight : 0);
-                }, 0).toFixed(2);
-                const combinedComment = criterionComments
-                    .map((comment, index) => comment ? `${criteria[index].name}: ${comment}` : '')
-                    .filter(comment => comment)
-                    .join('; ');
-                onSubmit({ 
-                    callFile, 
-                    scores, 
-                    criterionComments, 
-                    totalScore, 
-                    combinedComment, 
-                    audioUrl: directions[selectedDirectionIndex]?.hasFileUpload ? audioUrl : null, 
-                    isDraft: true, 
-                    selectedDirection,
-                    directions: [{ 
-                        name: selectedDirection, 
-                        hasFileUpload: directions[selectedDirectionIndex]?.hasFileUpload, 
-                        criteria 
-                    }],
-                    phoneNumber,
-                    assignedMonth 
-                }, callId);
-                setStage(1);
-                setCallFile(null);
-                setAudioUrl(null);
-                setScores(directions[0]?.criteria.map(() => 'Correct') || []);
-                setCriterionComments(directions[0]?.criteria.map(() => '') || []);
-                setPhoneNumber('');
-                setSelectedDirectionIndex(0);
-                setShownCriterionIndex(null);
-                setAssignedMonth(selectedMonth);
-                onClose();
             };
 
             if (!isOpen) return null;
@@ -738,167 +224,151 @@
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-xl font-semibold mb-4">Evaluate Call - Stage {stage} of 2</h2>
-                        
-                        {stage === 1 && (
+                        <h2 className="text-xl font-semibold mb-4">Evaluate Call - Operator: {operator?.name}</h2>
+                        <div className="mb-4">
+                            <label className="block mb-2 font-medium">Month</label>
+                            <input
+                                type="month"
+                                value={assignedMonth}
+                                onChange={(e) => setAssignedMonth(e.target.value)}
+                                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label className="block mb-2 font-medium">Call Number</label>
+                            <input
+                                type="number"
+                                value={callNumber}
+                                onChange={(e) => setCallNumber(e.target.value)}
+                                placeholder="Enter call number"
+                                className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                        </div>
+                        {directions[0]?.hasFileUpload && (
                             <div className="mb-4">
-                                <label className="block mb-2 font-medium">Select Direction</label>
-                                <select
-                                    value={selectedDirectionIndex}
-                                    onChange={(e) => setSelectedDirectionIndex(Number(e.target.value))}
-                                    className="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 mb-4"
-                                    disabled={directions.length === 0}
-                                >
-                                    {directions.length === 0 ? (
-                                        <option value="">No directions available</option>
-                                    ) : (
-                                        directions.map((direction, index) => (
-                                            <option key={index} value={index}>{direction.name}</option>
-                                        ))
-                                    )}
-                                </select>
-                                <button
-                                    onClick={handleNextStage}
-                                    className={`w-full p-2 rounded text-white ${
-                                        directions.length === 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'
-                                    }`}
-                                    disabled={directions.length === 0}
-                                >
-                                    Next
-                                </button>
-                            </div>
-                        )}
-
-                        {stage === 2 && (
-                            <div className="mb-4">
-                                {directions[selectedDirectionIndex]?.hasFileUpload && (
-                                    <div className="mb-4">
-                                        <label className="block mb-2 font-medium">Upload Call (Required)</label>
-                                        <input
-                                            type="file"
-                                            accept="audio/*"
-                                            onChange={handleFileChange}
-                                            className="w-full p-2 border rounded-lg"
-                                        />
-                                        {audioUrl && (
-                                            <div className="sticky top-0 z-10 bg-white p-2 border-b border-gray-200 mt-4">
-                                                <label className="block mb-2 font-medium">Listen to Call</label>
-                                                <audio controls className="w-full max-w-[400px]">
-                                                    <source src={audioUrl} type="audio/mpeg" />
-                                                    Your browser does not support the audio element.
-                                                </audio>
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-                                <label className="block mb-2 font-medium mt-4">Phone Number</label>
+                                <label className="block mb-2 font-medium">Upload Call (Required)</label>
                                 <input
-                                    type="text"
-                                    value={phoneNumber}
-                                    onChange={(e) => setPhoneNumber(e.target.value)}
-                                    placeholder="Enter phone number (10-30 characters)"
-                                    className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                                        phoneNumber.length >= 10 && phoneNumber.length <=30 ? 'focus:ring-blue-500 border-gray-300' : 'focus:ring-red-500 border-red-300'
-                                    }`}
+                                    type="file"
+                                    accept="audio/*"
+                                    onChange={handleFileChange}
+                                    className="w-full p-2 border rounded-lg"
                                 />
-                                <label className="block mb-2 font-medium mt-4">Criteria Evaluation</label>
-                                {directions.length === 0 || directions[selectedDirectionIndex]?.criteria.length === 0 ? (
-                                    <p className="text-red-500">No criteria defined for this direction. Please set up criteria in the Monitoring Scale.</p>
-                                ) : (
-                                    <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                                        <div className="space-y-2">
-                                            {directions[selectedDirectionIndex].criteria.map((criterion, index) => (
-                                                <div key={index} className="bg-white p-3 rounded-md shadow-sm border border-gray-200 animate-fade-in">
-                                                    <div className="flex items-center justify-between mb-2">
-                                                        <div className="flex items-center space-x-2">
-                                                            <svg
-                                                                className={`w-5 h-5 ${criterion.isCritical ? 'text-red-500' : 'text-green-500'}`}
-                                                                fill="none"
-                                                                stroke="currentColor"
-                                                                viewBox="0 0 24 24"
-                                                                xmlns="http://www.w3.org/2000/svg"
-                                                            >
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth="2"
-                                                                    d={criterion.isCritical ? 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' : 'M5 13l4 4L19 7'}
-                                                                />
-                                                            </svg>
-                                                            <label className="text-sm font-medium text-gray-800">
-                                                                {criterion.name} {criterion.isCritical ? '(Critical)' : `(${criterion.weight}%)`}
-                                                            </label>
-                                                        </div>
-                                                        <button
-                                                            onClick={() => showCriterionValue(index)}
-                                                            className="text-blue-500 hover:text-blue-700 p-1"
-                                                            title="Show criterion description"
-                                                        >
-                                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                            </svg>
-                                                        </button>
-                                                    </div>
-                                                    <div className="flex items-center space-x-2">
-                                                        <select
-                                                            value={scores[index]}
-                                                            onChange={(e) => handleScoreChange(index, e.target.value)}
-                                                            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                                                                scores[index] === 'Error' ? 'bg-red-100' : 'bg-green-100'
-                                                            }`}
-                                                        >
-                                                            <option value="Correct" className="bg-green-100">Correct</option>
-                                                            <option value="N/A" className="bg-green-100">N/A</option>
-                                                            <option value="Error" className="bg-red-100">Error</option>
-                                                        </select>
-                                                        <svg
-                                                            className={`w-5 h-5 ${scores[index] === 'Error' ? 'text-red-500' : 'text-green-500'}`}
-                                                            fill="none"
-                                                            stroke="currentColor"
-                                                            viewBox="0 0 24 24"
-                                                            xmlns="http://www.w3.org/2000/svg"
-                                                        >
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d={scores[index] === 'Error' ? 'M6 18L18 6M6 6l12 12' : 'M5 13l4 4L19 7'}
-                                                            />
-                                                        </svg>
-                                                    </div>
-                                                    {scores[index] === 'Error' && (
-                                                        <textarea
-                                                            value={criterionComments[index]}
-                                                            onChange={(e) => handleCommentChange(index, e.target.value)}
-                                                            placeholder={`Comment for ${criterion.name} (required)`}
-                                                            className={`w-full p-2 border rounded-lg mt-2 focus:outline-none focus:ring-2 ${
-                                                                criterionComments[index].trim() ? 'border-gray-300 focus:ring-blue-500' : 'border-red-300 focus:ring-red-500'
-                                                            } animate-fade-in`}
-                                                            rows={3}
-                                                        />
-                                                    )}
-                                                </div>
-                                            ))}
-                                        </div>
+                                {audioUrl && (
+                                    <div className="sticky top-0 z-10 bg-white p-2 border-b border-gray-200 mt-4">
+                                        <label className="block mb-2 font-medium">Listen to Call</label>
+                                        <audio controls className="w-full max-w-[400px]">
+                                            <source src={audioUrl} type="audio/mpeg" />
+                                            Your browser does not support the audio element.
+                                        </audio>
                                     </div>
                                 )}
-                                <p className="mt-4 text-sm font-medium">
-                                    Total Score: {
-                                        directions[selectedDirectionIndex]?.criteria.some((criterion, index) => 
-                                            criterion.isCritical && scores[index] === 'Error'
-                                        ) ? '0/100' : 
-                                        `${directions[selectedDirectionIndex]?.criteria.reduce((sum, criterion, index) => {
-                                            return sum + (!criterion.isCritical && (scores[index] === 'Correct' || scores[index] === 'N/A') ? criterion.weight : 0);
-                                        }, 0)}/100`
-                                    }
-                                </p>
                             </div>
                         )}
-
+                        <label className="block mb-2 font-medium mt-4">Phone Number</label>
+                        <input
+                            type="text"
+                            value={phoneNumber}
+                            onChange={(e) => setPhoneNumber(e.target.value)}
+                            placeholder="Enter phone number (10-30 characters)"
+                            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 ${
+                                phoneNumber.length >= 10 && phoneNumber.length <=30 ? 'focus:ring-blue-500 border-gray-300' : 'focus:ring-red-500 border-red-300'
+                            }`}
+                        />
+                        <label className="block mb-2 font-medium mt-4">Criteria Evaluation</label>
+                        {directions.length === 0 || directions[0]?.criteria.length === 0 ? (
+                            <p className="text-red-500">No criteria defined for this direction. Please set up criteria in the Monitoring Scale.</p>
+                        ) : (
+                            <div className="max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                                <div className="space-y-2">
+                                    {directions[0].criteria.map((criterion, index) => (
+                                        <div key={index} className="bg-white p-3 rounded-md shadow-sm border border-gray-200 animate-fade-in">
+                                            <div className="flex items-center justify-between mb-2">
+                                                <div className="flex items-center space-x-2">
+                                                    <svg
+                                                        className={`w-5 h-5 ${criterion.isCritical ? 'text-red-500' : 'text-green-500'}`}
+                                                        fill="none"
+                                                        stroke="currentColor"
+                                                        viewBox="0 0 24 24"
+                                                        xmlns="http://www.w3.org/2000/svg"
+                                                    >
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth="2"
+                                                            d={criterion.isCritical ? 'M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z' : 'M5 13l4 4L19 7'}
+                                                        />
+                                                    </svg>
+                                                    <label className="text-sm font-medium text-gray-800">
+                                                        {criterion.name} {criterion.isCritical ? '(Critical)' : `(${criterion.weight}%)`}
+                                                    </label>
+                                                </div>
+                                                <button
+                                                    onClick={() => showCriterionValue(index)}
+                                                    className="text-blue-500 hover:text-blue-700 p-1"
+                                                    title="Show criterion description"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                            <div className="flex items-center space-x-2">
+                                                <select
+                                                    value={scores[index]}
+                                                    onChange={(e) => handleScoreChange(index, e.target.value)}
+                                                    className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                                                        scores[index] === 'Error' ? 'bg-red-100' : 'bg-green-100'
+                                                    }`}
+                                                >
+                                                    <option value="Correct" className="bg-green-100">Correct</option>
+                                                    <option value="N/A" className="bg-green-100">N/A</option>
+                                                    <option value="Error" className="bg-red-100">Error</option>
+                                                </select>
+                                                <svg
+                                                    className={`w-5 h-5 ${scores[index] === 'Error' ? 'text-red-500' : 'text-green-500'}`}
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    viewBox="0 0 24 24"
+                                                    xmlns="http://www.w3.org/2000/svg"
+                                                >
+                                                    <path
+                                                        strokeLinecap="round"
+                                                        strokeLinejoin="round"
+                                                        strokeWidth="2"
+                                                        d={scores[index] === 'Error' ? 'M6 18L18 6M6 6l12 12' : 'M5 13l4 4L19 7'}
+                                                    />
+                                                </svg>
+                                            </div>
+                                            {scores[index] === 'Error' && (
+                                                <textarea
+                                                    value={criterionComments[index]}
+                                                    onChange={(e) => handleCommentChange(index, e.target.value)}
+                                                    placeholder={`Comment for ${criterion.name} (required)`}
+                                                    className={`w-full p-2 border rounded-lg mt-2 focus:outline-none focus:ring-2 ${
+                                                        criterionComments[index].trim() ? 'border-gray-300 focus:ring-blue-500' : 'border-red-300 focus:ring-red-500'
+                                                    } animate-fade-in`}
+                                                    rows={3}
+                                                />
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        <p className="mt-4 text-sm font-medium">
+                            Total Score: {
+                                directions[0]?.criteria.some((criterion, index) => 
+                                    criterion.isCritical && scores[index] === 'Error'
+                                ) ? '0/100' : 
+                                `${directions[0]?.criteria.reduce((sum, criterion, index) => {
+                                    return sum + (!criterion.isCritical && (scores[index] === 'Correct' || scores[index] === 'N/A') ? criterion.weight : 0);
+                                }, 0)}/100`
+                            }
+                        </p>
                         {shownCriterionIndex !== null && (
                             <div className="fixed top-0 right-0 w-80 h-full bg-white shadow-lg border-l border-gray-200 z-50 p-4 animate-fade-in">
                                 <div className="flex justify-between items-center mb-4">
-                                    <h3 className="text-lg font-semibold">{directions[selectedDirectionIndex]?.criteria[shownCriterionIndex]?.name}</h3>
+                                    <h3 className="text-lg font-semibold">{directions[0]?.criteria[shownCriterionIndex]?.name}</h3>
                                     <button
                                         onClick={() => setShownCriterionIndex(null)}
                                         className="text-red-500 hover:text-red-700 p-1"
@@ -910,20 +380,17 @@
                                     </button>
                                 </div>
                                 <p className="text-sm text-gray-600 bg-gray-100 p-2 rounded-md">
-                                    {directions[selectedDirectionIndex]?.criteria[shownCriterionIndex]?.value || 'No description provided'}
+                                    {directions[0]?.criteria[shownCriterionIndex]?.value || 'No description provided'}
                                 </p>
                             </div>
                         )}
-
-                        <div className="flex justify-between mt-4">
-                            {stage === 2 && (
-                                <button
-                                    onClick={handlePostpone}
-                                    className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-                                >
-                                    Postpone
-                                </button>
-                            )}
+                        <div className="flex justify-end mt-4">
+                            <button
+                                onClick={onClose}
+                                className="bg-gray-500 text-white px-4 py-2 rounded mr-2 hover:bg-gray-600"
+                            >
+                                Cancel
+                            </button>
                             <button
                                 onClick={handleSubmit}
                                 className={`px-4 py-2 rounded text-white transition-colors duration-200 ${
@@ -939,104 +406,157 @@
             );
         };
 
-        // Основной компонент приложения
+        // Main App Component
         const App = () => {
             const [calls, setCalls] = useState([]);
             const [showEvaluationModal, setShowEvaluationModal] = useState(false);
             const [showMonitoringScaleModal, setShowMonitoringScaleModal] = useState(false);
-            const [selectedCallId, setSelectedCallId] = useState(null);
-            const [editingCallId, setEditingCallId] = useState(null);
+            const [showLoginModal, setShowLoginModal] = useState(true);
+            const [apiKey, setApiKey] = useState(null);
+            const [userId, setUserId] = useState(null);
+            const [userRole, setUserRole] = useState(null);
             const [directions, setDirections] = useState([]);
+            const [operators, setOperators] = useState([]);
+            const [selectedOperator, setSelectedOperator] = useState(null);
+            const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
             const [expandedDetails, setExpandedDetails] = useState(null);
-            const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7)); // Текущий месяц (например, 2025-06)
             const MAX_EVALUATIONS = 20;
 
-const getLast12Months = () => {
-    const months = [];
-    const currentDate = new Date();
-    for (let i = 0; i < 12; i++) {
-        const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
-        
-        // Месяц и год в формате YYYY-MM
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0'); // getMonth() от 0 до 11
-        const monthStr = `${year}-${month}`;
-
-        const displayStr = date.toLocaleString('default', { month: 'long', year: 'numeric' });
-        months.push({ value: monthStr, label: displayStr });
-    }
-
-    return months; // от старого к новому
-};
-
+            const getLast12Months = () => {
+                const months = [];
+                const currentDate = new Date();
+                for (let i = 0; i < 12; i++) {
+                    const date = new Date(currentDate.getFullYear(), currentDate.getMonth() - i, 1);
+                    const year = date.getFullYear();
+                    const month = String(date.getMonth() + 1).padStart(2, '0');
+                    const monthStr = `${year}-${month}`;
+                    const displayStr = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+                    months.push({ value: monthStr, label: displayStr });
+                }
+                return months;
+            };
 
             const monthOptions = getLast12Months();
 
-            const handleEvaluateCall = (evaluationData, callId = null) => {
-                if (!callId && calls.filter(c => c.assignedMonth === evaluationData.assignedMonth).length >= MAX_EVALUATIONS) {
-                    alert(`Maximum limit of ${MAX_EVALUATIONS} call evaluations reached for ${monthOptions.find(m => m.value === evaluationData.assignedMonth)?.label || evaluationData.assignedMonth}.`);
-                    return;
-                }
-                setCalls(prevCalls => {
-                    if (callId && prevCalls.some(call => call.id === callId)) {
-                        return prevCalls.map(call => 
-                            call.id === callId 
-                                ? { 
-                                    ...call, 
-                                    scores: evaluationData.scores, 
-                                    criterionComments: evaluationData.criterionComments, 
-                                    combinedComment: evaluationData.combinedComment, 
-                                    totalScore: evaluationData.totalScore, 
-                                    audioUrl: evaluationData.audioUrl || call.audioUrl,
-                                    isDraft: evaluationData.isDraft,
-                                    fileName: evaluationData.callFile?.name || call.fileName || 'Evaluation ' + call.id,
-                                    date: evaluationData.isDraft ? call.date : new Date().toLocaleDateString(),
-                                    selectedDirection: evaluationData.selectedDirection,
-                                    directions: evaluationData.directions,
-                                    phoneNumber: evaluationData.phoneNumber,
-                                    assignedMonth: evaluationData.assignedMonth
-                                  } 
-                                : call
-                        );
-                    } else {
-                        return [...prevCalls, {
-                            id: prevCalls.length ? Math.max(...prevCalls.map(c => c.id)) + 1 : 1,
-                            fileName: evaluationData.callFile?.name || 'Evaluation ' + (prevCalls.length + 1),
-                            scores: evaluationData.scores,
-                            criterionComments: evaluationData.criterionComments,
-                            combinedComment: evaluationData.combinedComment,
-                            totalScore: evaluationData.totalScore,
-                            date: new Date().toLocaleDateString(),
-                            audioUrl: evaluationData.audioUrl,
-                            isDraft: evaluationData.isDraft,
-                            selectedDirection: evaluationData.selectedDirection,
-                            directions: evaluationData.directions,
-                            phoneNumber: evaluationData.phoneNumber,
-                            assignedMonth: evaluationData.assignedMonth
-                        }];
+            useEffect(() => {
+                const fetchData = async () => {
+                    if (!apiKey || !userId) return;
+                    try {
+                        // Fetch directions
+                        const directionsResponse = await fetch(`${API_BASE_URL}/api/admin/directions`, {
+                            headers: {
+                                'X-API-Key': apiKey,
+                                'X-User-Id': userId
+                            }
+                        });
+                        const directionsData = await directionsResponse.json();
+                        if (directionsData.status === 'success') {
+                            setDirections(directionsData.directions);
+                        }
+
+                        // Fetch operators
+                        const operatorsResponse = await fetch(`${API_BASE_URL}/api/sv/data?id=${userId}`, {
+                            headers: {
+                                'X-API-Key': apiKey,
+                                'X-User-Id': userId
+                            }
+                        });
+                        const operatorsData = await operatorsResponse.json();
+                        if (operatorsData.status === 'success') {
+                            setOperators(operatorsData.operators);
+                        }
+
+                        // Fetch evaluations
+                        if (selectedOperator) {
+                            const evaluationsResponse = await fetch(`${API_BASE_URL}/api/call_evaluations?operator_id=${selectedOperator.id}`, {
+                                headers: {
+                                    'X-API-Key': apiKey,
+                                    'X-User-Id': userId
+                                }
+                            });
+                            const evaluationsData = await evaluationsResponse.json();
+                            if (evaluationsData.status === 'success') {
+                                setCalls(evaluationsData.evaluations.map(eval => ({
+                                    id: eval.call_number,
+                                    fileName: `Call ${eval.call_number}`,
+                                    totalScore: eval.score.toFixed(2),
+                                    date: eval.evaluation_date,
+                                    phoneNumber: eval.phone_number,
+                                    combinedComment: eval.comment,
+                                    selectedDirection: selectedOperator.direction,
+                                    directions: directionsData.directions.filter(d => d.name === selectedOperator.direction),
+                                    scores: [], // Backend doesn't store individual scores
+                                    criterionComments: eval.comment ? eval.comment.split('; ') : [],
+                                    isDraft: false
+                                })));
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error fetching data:', err);
                     }
+                };
+                fetchData();
+            }, [apiKey, userId, selectedOperator]);
+
+            const handleLogin = (key, id, role) => {
+                setApiKey(key);
+                setUserId(id);
+                setUserRole(role);
+                setShowLoginModal(false);
+            };
+
+            const handleEvaluateCall = (evaluationData) => {
+                setCalls(prevCalls => {
+                    const newCall = {
+                        id: evaluationData.call_number,
+                        fileName: `Call ${evaluationData.call_number}`,
+                        scores: evaluationData.scores,
+                        criterionComments: evaluationData.criterionComments,
+                        combinedComment: evaluationData.combinedComment,
+                        totalScore: evaluationData.totalScore,
+                        date: new Date().toLocaleDateString(),
+                        audioUrl: evaluationData.audioUrl,
+                        isDraft: false,
+                        selectedDirection: evaluationData.selectedDirection,
+                        directions: evaluationData.directions,
+                        phoneNumber: evaluationData.phoneNumber,
+                        assignedMonth: evaluationData.assignedMonth
+                    };
+                    return [...prevCalls.filter(c => c.id !== newCall.id), newCall];
                 });
-                if (!evaluationData.isDraft) {
-                    setEditingCallId(null);
-                }
             };
 
             const handleSelectCall = (callId) => {
-                setSelectedCallId(callId === selectedCallId ? null : callId);
                 setExpandedDetails(callId === expandedDetails ? null : callId);
             };
 
-            const handleContinueEvaluation = (callId) => {
-                setEditingCallId(callId);
-                setShowEvaluationModal(true);
-            };
-
-            const handleSaveDirections = (newDirections) => {
-                setDirections(newDirections);
+            const handleSaveDirections = async (newDirections) => {
+                if (userRole !== 'admin') {
+                    alert('Only admins can save directions');
+                    return;
+                }
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/admin/save_directions`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-API-Key': apiKey,
+                            'X-User-Id': userId
+                        },
+                        body: JSON.stringify({ directions: newDirections })
+                    });
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        setDirections(result.directions);
+                    } else {
+                        alert('Failed to save directions: ' + result.error);
+                    }
+                } catch (err) {
+                    alert('Failed to save directions: ' + err.message);
+                }
             };
 
             const callsByMonth = calls.filter(call => call.assignedMonth === selectedMonth);
-            const hasPendingEvaluations = callsByMonth.some(call => call.isDraft);
             const isMaxEvaluationsReached = callsByMonth.length >= MAX_EVALUATIONS;
 
             return (
@@ -1044,11 +564,19 @@ const getLast12Months = () => {
                     <div className="flex justify-between items-center mb-6">
                         <h1 className="text-3xl font-bold">Supervisor Call Evaluation</h1>
                         <div className="flex space-x-2">
+                            {userRole === 'admin' && (
+                                <button
+                                    onClick={() => setShowMonitoringScaleModal(true)}
+                                    className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors duration-200"
+                                >
+                                    Monitoring Scale
+                                </button>
+                            )}
                             <button
-                                onClick={() => setShowMonitoringScaleModal(true)}
-                                className="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors duration-200"
+                                onClick={() => setShowLoginModal(true)}
+                                className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors duration-200"
                             >
-                                Monitoring Scale
+                                Logout
                             </button>
                         </div>
                     </div>
@@ -1056,19 +584,34 @@ const getLast12Months = () => {
                     <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-semibold text-gray-800">Call Evaluations</h2>
-                            <div>
-                                <label className="mr-2 font-medium">Filter by Month:</label>
-                                <select
-                                    value={selectedMonth}
-                                    onChange={(e) => setSelectedMonth(e.target.value)}
-                                    className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                >
-                                    {monthOptions.map(option => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
+                            <div className="flex space-x-4">
+                                <div>
+                                    <label className="mr-2 font-medium">Operator:</label>
+                                    <select
+                                        value={selectedOperator?.id || ''}
+                                        onChange={(e) => setSelectedOperator(operators.find(op => op.id === parseInt(e.target.value)) || null)}
+                                        className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        <option value="">Select Operator</option>
+                                        {operators.map(op => (
+                                            <option key={op.id} value={op.id}>{op.name}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                <div>
+                                    <label className="mr-2 font-medium">Month:</label>
+                                    <select
+                                        value={selectedMonth}
+                                        onChange={(e) => setSelectedMonth(e.target.value)}
+                                        className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    >
+                                        {monthOptions.map(option => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                </div>
                             </div>
                         </div>
                         {callsByMonth.length === 0 ? (
@@ -1079,96 +622,45 @@ const getLast12Months = () => {
                                     <thead>
                                         <tr className="bg-blue-50">
                                             <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">Call ID</th>
-                                            <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">File Name</th>
                                             <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">Direction</th>
                                             <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">Phone Number</th>
                                             <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">Total Score</th>
                                             <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">Date</th>
-                                            <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">Status</th>
-                                            <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {callsByMonth.map((call) => (
                                             <React.Fragment key={call.id}>
                                                 <tr 
-                                                    className={`hover:bg-gray-50 transition-colors duration-200 cursor-pointer ${selectedCallId === call.id ? 'bg-blue-100' : ''}`}
+                                                    className={`hover:bg-gray-50 transition-colors duration-200 cursor-pointer ${expandedDetails === call.id ? 'bg-blue-100' : ''}`}
                                                     onClick={() => handleSelectCall(call.id)}
                                                 >
                                                     <td className="p-4 border-b text-sm">{call.id}</td>
-                                                    <td className="p-4 border-b text-sm">{call.fileName}</td>
                                                     <td className="p-4 border-b text-sm">{call.selectedDirection || '-'}</td>
                                                     <td className="p-4 border-b text-sm">{call.phoneNumber || '-'}</td>
-                                                    <td className="p-4 border-b text-sm">{call.totalScore || '-'}</td>
+                                                    <td className="p-4 border-b text-sm">{call.totalScore}</td>
                                                     <td className="p-4 border-b text-sm">{call.date}</td>
-                                                    <td className="p-4 border-b text-sm">
-                                                        {call.isDraft ? (
-                                                            <span className="text-yellow-600">Pending</span>
-                                                        ) : (
-                                                            <span className="text-green-600">Completed</span>
-                                                        )}
-                                                    </td>
-                                                    <td className="p-4 border-b text-sm">
-                                                        {call.isDraft && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleContinueEvaluation(call.id);
-                                                                }}
-                                                                className="bg-blue-500 text-white px-3 py-1 rounded hover:bg-blue-600 text-sm"
-                                                            >
-                                                                Continue Evaluation
-                                                            </button>
-                                                        )}
-                                                    </td>
                                                 </tr>
-                                                {expandedDetails === call.id && call.scores && (
+                                                {expandedDetails === call.id && (
                                                     <tr>
-                                                        <td colSpan="8" className="p-4 border-b bg-gray-50">
+                                                        <td colSpan="5" className="p-4 border-b bg-gray-50">
                                                             <div className="text-sm">
                                                                 <h4 className="font-semibold mb-2">Evaluation Details:</h4>
                                                                 {call.directions && call.directions.length > 0 ? (
                                                                     <div>
                                                                         <h5 className="text-sm font-semibold text-gray-800 mb-2">{call.selectedDirection}</h5>
-                                                                        <table className="w-full border-collapse">
-                                                                            <thead>
-                                                                                <tr className="bg-gray-100">
-                                                                                    <th className="p-2 border-b text-left text-sm font-semibold text-gray-700">Criterion</th>
-                                                                                    <th className="p-2 border-b text-left text-sm font-semibold text-gray-700">Weight</th>
-                                                                                    <th className="p-2 border-b text-left text-sm font-semibold text-gray-700">Score</th>
-                                                                                    <th className="p-2 border-b text-left text-sm font-semibold text-gray-700">Comment</th>
-                                                                                </tr>
-                                                                            </thead>
-                                                                            <tbody>
-                                                                                {call.directions[0].criteria.map((criterion, critIndex) => (
-                                                                                    <tr key={critIndex}>
-                                                                                        <td className="p-2 border-b text-sm">{criterion.name}</td>
-                                                                                        <td className="p-2 border-b text-sm">{criterion.isCritical ? '(Critical)' : `${criterion.weight}%`}</td>
-                                                                                        <td className="p-2 border-b text-sm">
-                                                                                            <span className={`${call.scores[critIndex] === 'Error' ? 'text-red-500' : 'text-green-500'}`}>
-                                                                                                {call.scores[critIndex]}
-                                                                                            </span>
-                                                                                        </td>
-                                                                                        <td className="p-2 border-b text-sm">{call.criterionComments[critIndex] || '-'}</td>
-                                                                                    </tr>
-                                                                                ))}
-                                                                            </tbody>
-                                                                        </table>
+                                                                        <p className="text-sm">{call.combinedComment || 'No comments'}</p>
+                                                                        {call.audioUrl && call.directions[0]?.hasFileUpload && (
+                                                                            <audio controls className="w-full max-w-[400px] mt-2">
+                                                                                <source src={call.audioUrl} type="audio/mpeg" />
+                                                                                Your browser does not support the audio element.
+                                                                            </audio>
+                                                                        )}
                                                                     </div>
                                                                 ) : (
                                                                     <p>No criteria evaluated.</p>
                                                                 )}
                                                             </div>
-                                                        </td>
-                                                    </tr>
-                                                )}
-                                                {selectedCallId === call.id && call.audioUrl && call.directions[0]?.hasFileUpload && (
-                                                    <tr>
-                                                        <td colSpan="8" className="p-4 border-b">
-                                                            <audio controls className="w-full max-w-[400px]">
-                                                                <source src={call.audioUrl} type="audio/mpeg" />
-                                                                Your browser does not support the audio element.
-                                                            </audio>
                                                         </td>
                                                     </tr>
                                                 )}
@@ -1180,49 +672,45 @@ const getLast12Months = () => {
                         )}
                         <div className="mt-4 flex justify-end">
                             <button
-                                onClick={() => {
-                                    if (isMaxEvaluationsReached) {
-                                        alert(`Maximum limit of ${MAX_EVALUATIONS} call evaluations reached for ${monthOptions.find(m => m.value === selectedMonth)?.label || selectedMonth}.`);
-                                        return;
-                                    }
-                                    setEditingCallId(null);
-                                    setShowEvaluationModal(true);
-                                }}
+                                onClick={() => setShowEvaluationModal(true)}
                                 className={`bg-green-500 text-white px-4 py-2 rounded-full hover:bg-green-600 text-sm font-semibold transition-colors duration-200 ${
-                                    hasPendingEvaluations || isMaxEvaluationsReached ? 'opacity-50 cursor-not-allowed' : ''
+                                    !selectedOperator || isMaxEvaluationsReached ? 'opacity-50 cursor-not-allowed' : ''
                                 }`}
-                                disabled={hasPendingEvaluations || isMaxEvaluationsReached}
+                                disabled={!selectedOperator || isMaxEvaluationsReached}
                             >
                                 +
                             </button>
                         </div>
                     </div>
 
+                    <LoginModal
+                        isOpen={showLoginModal}
+                        onClose={() => setShowLoginModal(false)}
+                        onLogin={handleLogin}
+                    />
                     <EvaluationModal
                         isOpen={showEvaluationModal}
-                        onClose={() => {
-                            setShowEvaluationModal(false);
-                            setEditingCallId(null);
-                        }}
+                        onClose={() => setShowEvaluationModal(false)}
                         onSubmit={handleEvaluateCall}
-                        initialStage={editingCallId ? 2 : 1}
-                        callId={editingCallId}
-                        directions={directions}
-                        existingAudioUrl={editingCallId ? calls.find(call => call.id === editingCallId)?.audioUrl : null}
-                        calls={calls}
+                        directions={directions.filter(d => d.name === selectedOperator?.direction)}
+                        operator={selectedOperator}
                         selectedMonth={selectedMonth}
+                        apiKey={apiKey}
+                        userId={userId}
                     />
-                    <MonitoringScaleModal
-                        isOpen={showMonitoringScaleModal}
-                        onClose={() => setShowMonitoringScaleModal(false)}
-                        onSave={handleSaveDirections}
-                        initialDirections={directions}
-                    />
+                    {userRole === 'admin' && (
+                        <MonitoringScaleModal
+                            isOpen={showMonitoringScaleModal}
+                            onClose={() => setShowMonitoringScaleModal(false)}
+                            onSave={handleSaveDirections}
+                            initialDirections={directions}
+                        />
+                    )}
                 </div>
             );
         };
 
-        // Рендеринг приложения
+        // Render the application
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
