@@ -179,7 +179,7 @@
                     comment: combinedComment,
                     month: assignedMonth
                 };
-
+                
                 try {
                     const response = await fetch(`${API_BASE_URL}/api/call_evaluation`, {
                         method: 'POST',
@@ -190,6 +190,7 @@
                         },
                         body: JSON.stringify(evaluationData)
                     });
+                    console.log(evaluationData)
                     const result = await response.json();
                     if (result.status === 'success') {
                         onSubmit({
