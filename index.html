@@ -673,7 +673,9 @@
                                         {callsByMonth.map((call) => (
                                             <React.Fragment key={call.id}>
                                                 <tr 
-                                                    className={`hover:bg-gray-50 transition-colors duration-200 cursor-pointer ${expandedDetails === call.id ? 'bg-blue-100' : ''}`}
+                                                    className={`hover:bg-gray-50 transition-colors duration-200 cursor-pointer ${
+                                                        call.isDraft ? 'bg-yellow-100' : 'bg-green-50'
+                                                    } ${expandedDetails === call.id ? 'bg-blue-100' : ''}`}
                                                     onClick={() => call.isDraft ? handleEditDraft(call) : handleSelectCall(call.id)}
                                                 >
                                                     <td className="p-4 border-b text-sm">{call.isDraft ? 'Draft' : 'Submitted'}</td>
@@ -690,7 +692,30 @@
                                                                 {call.directions && call.directions.length > 0 ? (
                                                                     <div>
                                                                         <h5 className="text-sm font-semibold text-gray-800 mb-2">{call.selectedDirection}</h5>
-                                                                        <p className="text-sm">{call.combinedComment || 'No comments'}</p>
+                                                                        <table className="w-full border-collapse">
+                                                                            <thead>
+                                                                                <tr className="bg-gray-100">
+                                                                                    <th className="p-2 border-b text-left text-sm font-semibold text-gray-700">Criterion</th>
+                                                                                    <th className="p-2 border-b text-left text-sm font-semibold text-gray-700">Weight</th>
+                                                                                    <th className="p-2 border-b text-left text-sm font-semibold text-gray-700">Score</th>
+                                                                                    <th className="p-2 border-b text-left text-sm font-semibold text-gray-700">Comment</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody>
+                                                                                {call.directions[0].criteria.map((criterion, critIndex) => (
+                                                                                    <tr key={critIndex}>
+                                                                                        <td className="p-2 border-b text-sm">{criterion.name}</td>
+                                                                                        <td className="p-2 border-b text-sm">{criterion.isCritical ? '(Critical)' : `${criterion.weight}%`}</td>
+                                                                                        <td className="p-2 border-b text-sm">
+                                                                                            <span className={`${call.scores[critIndex] === 'Error' ? 'text-red-500' : 'text-green-500'}`}>
+                                                                                                {call.scores[critIndex] || 'Correct'}
+                                                                                            </span>
+                                                                                        </td>
+                                                                                        <td className="p-2 border-b text-sm">{call.criterionComments[critIndex] || '-'}</td>
+                                                                                    </tr>
+                                                                                ))}
+                                                                            </tbody>
+                                                                        </table>
                                                                         {call.audioUrl && call.directions[0]?.hasFileUpload && (
                                                                             <audio controls className="w-full max-w-[400px] mt-2">
                                                                                 <source src={call.audioUrl} type="audio/mpeg" />
