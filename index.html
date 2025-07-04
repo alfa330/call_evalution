@@ -730,7 +730,7 @@
                     <LoginModal
                         isOpen={showLoginModal}
                         onClose={() => setShowLoginModal(false)}
-                        onLogin={(key, id, role, name) => handleLogin(key, id, role, name)}
+                        onLogin={handleLogin}
                     />
                     <EvaluationModal
                         isOpen={showEvaluationModal}
