@@ -32,7 +32,7 @@
         const { useState, useEffect } = React;
         const API_BASE_URL = 'https://otp-wif3.onrender.com';
 
-        // Login Modal Component
+        // Login Modal Component (unchanged)
         const LoginModal = ({ isOpen, onClose, onLogin }) => {
             const [login, setLogin] = useState('');
             const [password, setPassword] = useState('');
@@ -102,37 +102,28 @@
         };
 
         // Evaluation Modal Component
-        const EvaluationModal = ({ isOpen, onClose, onSubmit, directions, operator, selectedMonth, apiKey, userId, editCall }) => {
+        const EvaluationModal = ({ isOpen, onClose, onSubmit, directions, operator, selectedMonth, apiKey, userId, existingEvaluation }) => {
             const [callFile, setCallFile] = useState(null);
-            const [audioUrl, setAudioUrl] = useState(null);
-            const [scores, setScores] = useState([]);
-            const [criterionComments, setCriterionComments] = useState([]);
-            const [phoneNumber, setPhoneNumber] = useState('');
+            const [audioUrl, setAudioUrl] = useState(existingEvaluation?.audioUrl || null);
+            const [scores, setScores] = useState(existingEvaluation?.scores || []);
+            const [criterionComments, setCriterionComments] = useState(existingEvaluation?.criterionComments || []);
+            const [phoneNumber, setPhoneNumber] = useState(existingEvaluation?.phoneNumber || '');
             const [shownCriterionIndex, setShownCriterionIndex] = useState(null);
-            const [assignedMonth, setAssignedMonth] = useState(selectedMonth);
-            const [callNumber, setCallNumber] = useState('');
+            const [assignedMonth, setAssignedMonth] = useState(existingEvaluation?.assignedMonth || selectedMonth);
+            const [isDraft, setIsDraft] = useState(existingEvaluation?.isDraft || false);
 
             useEffect(() => {
-                if (isOpen && operator && directions.length > 0) {
-                    if (editCall) {
-                        setCallNumber(editCall.call_number || '');
-                        setPhoneNumber(editCall.phone_number || '');
-                        setScores(editCall.scores || directions[0].criteria.map(() => 'Correct'));
-                        setCriterionComments(editCall.criterion_comments || directions[0].criteria.map(() => ''));
-                        setAudioUrl(editCall.audio_url || null);
-                        setAssignedMonth(editCall.month || selectedMonth);
-                    } else {
-                        setScores(directions[0].criteria.map(() => 'Correct'));
-                        setCriterionComments(directions[0].criteria.map(() => ''));
-                        setCallFile(null);
-                        setAudioUrl(null);
-                        setPhoneNumber('');
-                        setCallNumber('');
-                        setAssignedMonth(selectedMonth);
-                    }
+                if (isOpen && operator && directions.length > 0 && !existingEvaluation) {
+                    setScores(directions[0].criteria.map(() => 'Correct'));
+                    setCriterionComments(directions[0].criteria.map(() => ''));
+                    setCallFile(null);
+                    setAudioUrl(null);
+                    setPhoneNumber('');
+                    setAssignedMonth(selectedMonth);
                     setShownCriterionIndex(null);
+                    setIsDraft(false);
                 }
-            }, [isOpen, operator, directions, selectedMonth, editCall]);
+            }, [isOpen, operator, directions, selectedMonth, existingEvaluation]);
 
             const handleFileChange = (e) => {
                 const file = e.target.files[0];
@@ -166,15 +157,10 @@
                 directions[0]?.criteria.length === 0 ||
                 !(phoneNumber.length >= 10 && phoneNumber.length <= 30) ||
                 (directions[0]?.hasFileUpload && !callFile && !audioUrl) ||
-                scores.some((score, index) => score === 'Error' && !criterionComments[index].trim()) ||
-                !callNumber;
+                scores.some((score, index) => score === 'Error' && !criterionComments[index].trim());
 
-            const handleSaveDraft = async () => {
-                if (!callNumber || !(phoneNumber.length >= 10 && phoneNumber.length <= 30)) {
-                    alert('Please provide a valid call number and phone number (10-30 characters).');
-                    return;
-                }
-
+            const handleSubmit = async (saveAsDraft = false) => {
+                if (isSubmitDisabled && !saveAsDraft) return;
                 const criteria = directions[0]?.criteria || [];
                 const hasCriticalError = criteria.some((criterion, index) => 
                     criterion.isCritical && scores[index] === 'Error'
@@ -187,102 +173,47 @@
                     .filter(comment => comment)
                     .join('; ');
 
-                const evaluationData = {
-                    evaluator: operator.supervisor_name,
-                    operator: operator.name,
-                    call_number: parseInt(callNumber),
-                    phone_number: phoneNumber,
-                    score: totalScore,
-                    comment: combinedComment,
-                    month: assignedMonth,
-                    is_draft: true,
-                    scores,
-                    criterion_comments: criterionComments
-                };
+                const formData = new FormData();
+                formData.append('evaluator', operator.supervisor_name);
+                formData.append('operator', operator.name);
+                formData.append('phone_number', phoneNumber);
+                formData.append('score', totalScore);
+                formData.append('comment', combinedComment);
+                formData.append('month', assignedMonth);
+                formData.append('is_draft', saveAsDraft);
 
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/call_evaluation`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-API-Key': apiKey,
-                            'X-User-Id': userId
-                        },
-                        body: JSON.stringify(evaluationData)
-                    });
-                    const result = await response.json();
-                    if (result.status === 'success') {
-                        onSubmit({
-                            ...evaluationData,
-                            totalScore: totalScore.toFixed(2),
-                            selectedDirection: directions[0]?.name,
-                            directions: [{ 
-                                name: directions[0]?.name, 
-                                hasFileUpload: directions[0]?.hasFileUpload, 
-                                criteria 
-                            }],
-                            audioUrl: directions[0]?.hasFileUpload ? audioUrl : null,
-                            assignedMonth
-                        });
-                        onClose();
-                    } else {
-                        alert('Failed to save draft: ' + result.error);
-                    }
-                } catch (err) {
-                    alert('Failed to save draft: ' + err.message);
+                if (callFile) {
+                    formData.append('audio_file', callFile);
                 }
-            };
-
-            const handleSubmit = async () => {
-                if (isSubmitDisabled) return;
-
-                const criteria = directions[0]?.criteria || [];
-                const hasCriticalError = criteria.some((criterion, index) => 
-                    criterion.isCritical && scores[index] === 'Error'
-                );
-                const totalScore = hasCriticalError ? 0 : criteria.reduce((sum, criterion, index) => {
-                    return sum + (!criterion.isCritical && (scores[index] === 'Correct' || scores[index] === 'N/A') ? criterion.weight : 0);
-                }, 0);
-                const combinedComment = criterionComments
-                    .map((comment, index) => comment ? `${criteria[index].name}: ${comment}` : '')
-                    .filter(comment => comment)
-                    .join('; ');
-
-                const evaluationData = {
-                    evaluator: operator.supervisor_name,
-                    operator: operator.name,
-                    call_number: parseInt(callNumber),
-                    phone_number: phoneNumber,
-                    score: totalScore,
-                    comment: combinedComment,
-                    month: assignedMonth,
-                    is_draft: false,
-                    scores,
-                    criterion_comments: criterionComments
-                };
 
                 try {
                     const response = await fetch(`${API_BASE_URL}/api/call_evaluation`, {
                         method: 'POST',
                         headers: {
-                            'Content-Type': 'application/json',
                             'X-API-Key': apiKey,
                             'X-User-Id': userId
                         },
-                        body: JSON.stringify(evaluationData)
+                        body: formData
                     });
                     const result = await response.json();
                     if (result.status === 'success') {
                         onSubmit({
-                            ...evaluationData,
+                            id: result.evaluation_id,
+                            evaluator: operator.supervisor_name,
+                            operator: operator.name,
+                            phoneNumber: phoneNumber,
                             totalScore: totalScore.toFixed(2),
+                            comment: combinedComment,
                             selectedDirection: directions[0]?.name,
                             directions: [{ 
                                 name: directions[0]?.name, 
                                 hasFileUpload: directions[0]?.hasFileUpload, 
                                 criteria 
                             }],
+                            scores,
+                            criterionComments,
                             audioUrl: directions[0]?.hasFileUpload ? audioUrl : null,
+                            isDraft: saveAsDraft,
                             assignedMonth
                         });
                         onClose();
@@ -294,22 +225,36 @@
                 }
             };
 
+            const handleDeleteDraft = async () => {
+                if (!existingEvaluation?.isDraft) return;
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/call_evaluation/${existingEvaluation.id}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-API-Key': apiKey,
+                            'X-User-Id': userId
+                        }
+                    });
+                    const result = await response.json();
+                    if (result.status === 'success') {
+                        onSubmit(null); // Remove draft from list
+                        onClose();
+                    } else {
+                        alert('Failed to delete draft: ' + result.error);
+                    }
+                } catch (err) {
+                    alert('Failed to delete draft: ' + err.message);
+                }
+            };
+
             if (!isOpen) return null;
 
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                     <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-xl font-semibold mb-4">Evaluate Call - Operator: {operator?.name}</h2>
-                        <label className="block mb-2 font-medium">Call Number (Required)</label>
-                        <input
-                            type="text"
-                            value={callNumber}
-                            onChange={(e) => setCallNumber(e.target.value)}
-                            placeholder="Enter call number"
-                            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                                callNumber ? 'focus:ring-blue-500 border-gray-300' : 'focus:ring-red-500 border-red-300'
-                            }`}
-                        />
+                        <h2 className="text-xl font-semibold mb-4">
+                            {existingEvaluation?.isDraft ? 'Edit Draft Evaluation' : 'Evaluate Call'} - Operator: {operator?.name}
+                        </h2>
                         {directions[0]?.hasFileUpload && (
                             <div className="mb-4">
                                 <label className="block mb-2 font-medium">Upload Call (Required)</label>
@@ -337,7 +282,7 @@
                             onChange={(e) => setPhoneNumber(e.target.value)}
                             placeholder="Enter phone number (10-30 characters)"
                             className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                                phoneNumber.length >= 10 && phoneNumber.length <=30 ? 'focus:ring-blue-500 border-gray-300' : 'focus:ring-red-500 border-red-300'
+                                phoneNumber.length >= 10 && phoneNumber.length <= 30 ? 'focus:ring-blue-500 border-gray-300' : 'focus:ring-red-500 border-red-300'
                             }`}
                         />
                         <label className="block mb-2 font-medium mt-4">Criteria Evaluation</label>
@@ -380,7 +325,7 @@
                                             </div>
                                             <div className="flex items-center space-x-2">
                                                 <select
-                                                    value={scores[index]}
+                                                    value={scores[index] || 'Correct'}
                                                     onChange={(e) => handleScoreChange(index, e.target.value)}
                                                     className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                                                         scores[index] === 'Error' ? 'bg-red-100' : 'bg-green-100'
@@ -407,11 +352,11 @@
                                             </div>
                                             {scores[index] === 'Error' && (
                                                 <textarea
-                                                    value={criterionComments[index]}
+                                                    value={criterionComments[index] || ''}
                                                     onChange={(e) => handleCommentChange(index, e.target.value)}
                                                     placeholder={`Comment for ${criterion.name} (required)`}
                                                     className={`w-full p-2 border rounded-lg mt-2 focus:outline-none focus:ring-2 ${
-                                                        criterionComments[index].trim() ? 'border-gray-300 focus:ring-blue-500' : 'border-red-300 focus:ring-red-500'
+                                                        criterionComments[index]?.trim() ? 'border-gray-300 focus:ring-blue-500' : 'border-red-300 focus:ring-red-500'
                                                     } animate-fade-in`}
                                                     rows={3}
                                                 />
@@ -451,26 +396,34 @@
                             </div>
                         )}
                         <div className="flex justify-end mt-4 space-x-2">
+                            {existingEvaluation?.isDraft && (
+                                <button
+                                    onClick={handleDeleteDraft}
+                                    className="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600"
+                                >
+                                    Delete Draft
+                                </button>
+                            )}
                             <button
-                                onClick={onClose}
-                                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleSaveDraft}
+                                onClick={() => handleSubmit(true)}
                                 className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
                             >
                                 Save as Draft
                             </button>
                             <button
-                                onClick={handleSubmit}
+                                onClick={() => handleSubmit(false)}
                                 className={`px-4 py-2 rounded text-white transition-colors duration-200 ${
                                     isSubmitDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'
                                 }`}
                                 disabled={isSubmitDisabled}
                             >
                                 Submit
+                            </button>
+                            <button
+                                onClick={onClose}
+                                className="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600"
+                            >
+                                Cancel
                             </button>
                         </div>
                     </div>
@@ -492,7 +445,7 @@
             const [selectedOperator, setSelectedOperator] = useState(null);
             const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
             const [expandedDetails, setExpandedDetails] = useState(null);
-            const [editCall, setEditCall] = useState(null);
+            const [editingEvaluation, setEditingEvaluation] = useState(null);
             const MAX_EVALUATIONS = 20;
 
             const getLast12Months = () => {
@@ -526,7 +479,7 @@
                         if (directionsData.status === 'success') {
                             setDirections(directionsData.directions);
                         }
-            
+
                         // Fetch operators
                         const operatorsResponse = await fetch(`${API_BASE_URL}/api/sv/data?id=${userId}`, {
                             headers: {
@@ -538,10 +491,10 @@
                         if (operatorsData.status === 'success') {
                             setOperators(operatorsData.operators);
                         }
-            
+
                         // Fetch evaluations
                         if (selectedOperator) {
-                            const evaluationsResponse = await fetch(`${API_BASE_URL}/api/call_evaluations?operator_id=${selectedOperator.id}&month=${selectedMonth}`, {
+                            const evaluationsResponse = await fetch(`${API_BASE_URL}/api/call_evaluations?operator_id=${selectedOperator.id}`, {
                                 headers: {
                                     'X-API-Key': apiKey,
                                     'X-User-Id': userId
@@ -550,19 +503,19 @@
                             const evaluationsData = await evaluationsResponse.json();
                             if (evaluationsData.status === 'success') {
                                 setCalls(evaluationsData.evaluations.map(evaluation => ({
-                                    id: evaluation.call_number,
-                                    fileName: `Call ${evaluation.call_number}`,
+                                    id: evaluation.id,
+                                    fileName: `Call ${evaluation.phone_number}`,
                                     totalScore: evaluation.score.toFixed(2),
                                     date: evaluation.evaluation_date,
                                     phoneNumber: evaluation.phone_number,
                                     combinedComment: evaluation.comment,
                                     selectedDirection: selectedOperator.direction,
                                     directions: directionsData.directions.filter(d => d.name === selectedOperator.direction),
-                                    scores: evaluation.scores || [],
-                                    criterionComments: evaluation.criterion_comments || evaluation.comment?.split('; ') || [],
+                                    scores: [], // Backend doesn't store individual scores
+                                    criterionComments: evaluation.comment ? evaluation.comment.split('; ') : [],
+                                    audioUrl: evaluation.audio_path ? `${API_BASE_URL}/uploads/${evaluation.audio_path.split('/').pop()}` : null,
                                     isDraft: evaluation.is_draft,
-                                    assignedMonth: evaluation.month,
-                                    audioUrl: evaluation.audio_url
+                                    assignedMonth: evaluation.month
                                 })));
                             }
                         }
@@ -571,7 +524,7 @@
                     }
                 };
                 fetchData();
-            }, [apiKey, userId, selectedOperator, selectedMonth]);
+            }, [apiKey, userId, selectedOperator]);
 
             const handleLogin = (key, id, role) => {
                 setApiKey(key);
@@ -582,54 +535,38 @@
 
             const handleEvaluateCall = (evaluationData) => {
                 setCalls(prevCalls => {
+                    if (!evaluationData) {
+                        // Handle draft deletion
+                        return prevCalls.filter(c => c.id !== editingEvaluation?.id);
+                    }
                     const newCall = {
-                        id: evaluationData.call_number,
-                        fileName: `Call ${evaluationData.call_number}`,
+                        id: evaluationData.id,
+                        fileName: `Call ${evaluationData.phoneNumber}`,
                         scores: evaluationData.scores,
-                        criterionComments: evaluationData.criterion_comments,
+                        criterionComments: evaluationData.criterionComments,
                         combinedComment: evaluationData.comment,
                         totalScore: evaluationData.totalScore,
                         date: new Date().toLocaleDateString(),
                         audioUrl: evaluationData.audioUrl,
-                        isDraft: evaluationData.is_draft,
+                        isDraft: evaluationData.isDraft,
                         selectedDirection: evaluationData.selectedDirection,
                         directions: evaluationData.directions,
-                        phoneNumber: evaluationData.phone_number,
-                        assignedMonth: evaluationData.month
+                        phoneNumber: evaluationData.phoneNumber,
+                        assignedMonth: evaluationData.assignedMonth
                     };
                     return [...prevCalls.filter(c => c.id !== newCall.id), newCall];
                 });
-            };
-
-            const handleEditCall = (call) => {
-                setEditCall(call);
-                setShowEvaluationModal(true);
-            };
-
-            const handleDeleteDraft = async (callId) => {
-                try {
-                    const response = await fetch(`${API_BASE_URL}/api/call_evaluation/delete_draft`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-API-Key': apiKey,
-                            'X-User-Id': userId
-                        },
-                        body: JSON.stringify({ operator_id: selectedOperator.id, call_number: callId, month: selectedMonth })
-                    });
-                    const result = await response.json();
-                    if (result.status === 'success') {
-                        setCalls(prevCalls => prevCalls.filter(c => c.id !== callId || c.assignedMonth !== selectedMonth));
-                    } else {
-                        alert('Failed to delete draft: ' + result.error);
-                    }
-                } catch (err) {
-                    alert('Failed to delete draft: ' + err.message);
-                }
+                setEditingEvaluation(null);
             };
 
             const handleSelectCall = (callId) => {
                 setExpandedDetails(callId === expandedDetails ? null : callId);
+            };
+
+            const handleEditDraft = (call) => {
+                if (!call.isDraft) return;
+                setEditingEvaluation(call);
+                setShowEvaluationModal(true);
             };
 
             const handleSaveDirections = async (newDirections) => {
@@ -723,13 +660,11 @@
                                 <table className="min-w-full bg-white border-collapse">
                                     <thead>
                                         <tr className="bg-blue-50">
-                                            <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">Call ID</th>
+                                            <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">Status</th>
                                             <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">Direction</th>
                                             <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">Phone Number</th>
                                             <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">Total Score</th>
                                             <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">Date</th>
-                                            <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">Status</th>
-                                            <th className="p-4 border-b text-left text-sm font-semibold text-gray-700">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -737,36 +672,17 @@
                                             <React.Fragment key={call.id}>
                                                 <tr 
                                                     className={`hover:bg-gray-50 transition-colors duration-200 cursor-pointer ${expandedDetails === call.id ? 'bg-blue-100' : ''}`}
-                                                    onClick={() => handleSelectCall(call.id)}
+                                                    onClick={() => call.isDraft ? handleEditDraft(call) : handleSelectCall(call.id)}
                                                 >
-                                                    <td className="p-4 border-b text-sm">{call.id}</td>
+                                                    <td className="p-4 border-b text-sm">{call.isDraft ? 'Draft' : 'Submitted'}</td>
                                                     <td className="p-4 border-b text-sm">{call.selectedDirection || '-'}</td>
                                                     <td className="p-4 border-b text-sm">{call.phoneNumber || '-'}</td>
                                                     <td className="p-4 border-b text-sm">{call.totalScore}</td>
                                                     <td className="p-4 border-b text-sm">{call.date}</td>
-                                                    <td className="p-4 border-b text-sm">{call.isDraft ? 'Draft' : 'Submitted'}</td>
-                                                    <td className="p-4 border-b text-sm">
-                                                        {call.isDraft && (
-                                                            <>
-                                                                <button
-                                                                    onClick={() => handleEditCall(call)}
-                                                                    className="text-blue-500 hover:text-blue-700 mr-2"
-                                                                >
-                                                                    Edit
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleDeleteDraft(call.id)}
-                                                                    className="text-red-500 hover:text-red-700"
-                                                                >
-                                                                    Delete
-                                                                </button>
-                                                            </>
-                                                        )}
-                                                    </td>
                                                 </tr>
                                                 {expandedDetails === call.id && (
                                                     <tr>
-                                                        <td colSpan="7" className="p-4 border-b bg-gray-50">
+                                                        <td colSpan="5" className="p-4 border-b bg-gray-50">
                                                             <div className="text-sm">
                                                                 <h4 className="font-semibold mb-2">Evaluation Details:</h4>
                                                                 {call.directions && call.directions.length > 0 ? (
@@ -795,7 +711,10 @@
                         )}
                         <div className="mt-4 flex justify-end">
                             <button
-                                onClick={() => { setEditCall(null); setShowEvaluationModal(true); }}
+                                onClick={() => {
+                                    setEditingEvaluation(null);
+                                    setShowEvaluationModal(true);
+                                }}
                                 className={`bg-green-500 text-white px-4 py-2 rounded-full hover:bg-green-600 text-sm font-semibold transition-colors duration-200 ${
                                     !selectedOperator || isMaxEvaluationsReached ? 'opacity-50 cursor-not-allowed' : ''
                                 }`}
@@ -813,14 +732,17 @@
                     />
                     <EvaluationModal
                         isOpen={showEvaluationModal}
-                        onClose={() => { setShowEvaluationModal(false); setEditCall(null); }}
+                        onClose={() => {
+                            setShowEvaluationModal(false);
+                            setEditingEvaluation(null);
+                        }}
                         onSubmit={handleEvaluateCall}
                         directions={directions.filter(d => d.name === selectedOperator?.direction)}
                         operator={selectedOperator}
                         selectedMonth={selectedMonth}
                         apiKey={apiKey}
                         userId={userId}
-                        editCall={editCall}
+                        existingEvaluation={editingEvaluation}
                     />
                     {userRole === 'admin' && (
                         <MonitoringScaleModal
