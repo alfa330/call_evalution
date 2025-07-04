@@ -102,7 +102,7 @@
         };
 
         // Evaluation Modal Component
-        const EvaluationModal = ({ isOpen, onClose, onSubmit, directions, operator, selectedMonth, apiKey, userId, existingEvaluation }) => {
+        const EvaluationModal = ({ isOpen, onClose, onSubmit, directions, operator, selectedMonth, apiKey, userId, userName, existingEvaluation }) => {
             const [callFile, setCallFile] = useState(null);
             const [audioUrl, setAudioUrl] = useState(existingEvaluation?.audioUrl || null);
             const [scores, setScores] = useState(existingEvaluation?.scores || []);
@@ -730,7 +730,7 @@
                     <LoginModal
                         isOpen={showLoginModal}
                         onClose={() => setShowLoginModal(false)}
-                        onLogin={handleLogin}
+                        onLogin={(key, id, role, name) => handleLogin(key, id, role, name)}
                     />
                     <EvaluationModal
                         isOpen={showEvaluationModal}
