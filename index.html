@@ -48,7 +48,7 @@
                     });
                     const data = await response.json();
                     if (data.status === 'success') {
-                        onLogin(data.apiKey, data.id, data.role);
+                        onLogin(data.apiKey, data.id, data.role, data.name);
                         setError('');
                         onClose();
                     } else {
@@ -174,7 +174,7 @@
                     .join('; ');
 
                 const formData = new FormData();
-                formData.append('evaluator', operator.supervisor_name);
+                formData.append('evaluator', userName);
                 formData.append('operator', operator.name);
                 formData.append('phone_number', phoneNumber);
                 formData.append('score', totalScore);
@@ -199,7 +199,7 @@
                     if (result.status === 'success') {
                         onSubmit({
                             id: result.evaluation_id,
-                            evaluator: operator.supervisor_name,
+                            evaluator: userName,
                             operator: operator.name,
                             phoneNumber: phoneNumber,
                             totalScore: totalScore.toFixed(2),
@@ -433,6 +433,7 @@
 
         // Main App Component
         const App = () => {
+            const [userName, setUserName] = useState(null);
             const [calls, setCalls] = useState([]);
             const [showEvaluationModal, setShowEvaluationModal] = useState(false);
             const [showMonitoringScaleModal, setShowMonitoringScaleModal] = useState(false);
@@ -526,10 +527,11 @@
                 fetchData();
             }, [apiKey, userId, selectedOperator]);
 
-            const handleLogin = (key, id, role) => {
+            const handleLogin = (key, id, role, name) => {
                 setApiKey(key);
                 setUserId(id);
                 setUserRole(role);
+                setUserName(name);
                 setShowLoginModal(false);
             };
 
@@ -728,7 +730,7 @@
                     <LoginModal
                         isOpen={showLoginModal}
                         onClose={() => setShowLoginModal(false)}
-                        onLogin={handleLogin}
+                        onLogin={(key, id, role, name) => handleLogin(key, id, role, name)}
                     />
                     <EvaluationModal
                         isOpen={showEvaluationModal}
@@ -742,6 +744,7 @@
                         selectedMonth={selectedMonth}
                         apiKey={apiKey}
                         userId={userId}
+                        userName={userName}
                         existingEvaluation={editingEvaluation}
                     />
                     {userRole === 'admin' && (
