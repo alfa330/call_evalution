@@ -480,7 +480,7 @@
                         if (directionsData.status === 'success') {
                             setDirections(directionsData.directions);
                         }
-
+            
                         // Fetch operators
                         const operatorsResponse = await fetch(`${API_BASE_URL}/api/sv/data?id=${userId}`, {
                             headers: {
@@ -492,7 +492,7 @@
                         if (operatorsData.status === 'success') {
                             setOperators(operatorsData.operators);
                         }
-
+            
                         // Fetch evaluations
                         if (selectedOperator) {
                             const evaluationsResponse = await fetch(`${API_BASE_URL}/api/call_evaluations?operator_id=${selectedOperator.id}`, {
@@ -512,9 +512,9 @@
                                     combinedComment: evaluation.comment,
                                     selectedDirection: selectedOperator.direction,
                                     directions: directionsData.directions.filter(d => d.name === selectedOperator.direction),
-                                    scores: [], // Backend doesn't store individual scores
-                                    criterionComments: evaluation.comment ? evaluation.comment.split('; ') : [],
-                                    audioUrl: evaluation.audio_path ? `${API_BASE_URL}/uploads/${evaluation.audio_path.split('/').pop()}` : null,
+                                    scores: evaluation.scores || [], // Use scores from enhanced evaluations
+                                    criterionComments: evaluation.criterion_comments || [],
+                                    audioUrl: evaluation.audio_path ? `${API_BASE_URL}/api/audio/${evaluation.id}` : null,
                                     isDraft: evaluation.is_draft,
                                     assignedMonth: evaluation.month
                                 })));
