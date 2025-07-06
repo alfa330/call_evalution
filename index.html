@@ -129,7 +129,7 @@
                 const fetchAudio = async () => {
                   if (!apiKey || !userId) return;
                   try {
-                    const response = await fetch(`${API_BASE_URL}/api/audio/${AUDIO_ID}`, {
+                    const response = await fetch(`${API_BASE_URL}/api/audio/${existingEvaluation}`, {
                       method: 'GET',
                       headers: {
                         'X-API-Key': apiKey,
