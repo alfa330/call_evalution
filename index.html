@@ -31,6 +31,24 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
         const API_BASE_URL = 'https://otp-wif3.onrender.com';
+        const getAudioUrlWithAuth = async (evaluationId, apiKey, userId) => {
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/audio/${evaluationId}`, {
+                    method: 'GET',
+                    headers: {
+                        'X-API-Key': apiKey,
+                        'X-User-Id': userId
+                    }
+                });
+                if (!response.ok) throw new Error('Failed to fetch audio');
+        
+                const blob = await response.blob();
+                return URL.createObjectURL(blob);
+            } catch (error) {
+                console.error('Audio fetch error:', error);
+                return null;
+            }
+        };
 
         // Login Modal Component (unchanged)
         const LoginModal = ({ isOpen, onClose, onLogin }) => {
@@ -126,27 +144,13 @@
             }, [isOpen, operator, directions, selectedMonth, existingEvaluation]);
 
             useEffect(() => {
-                const fetchAudio = async () => {
-                  if (!apiKey || !userId) return;
-                  try {
-                    const response = await fetch(`${API_BASE_URL}/api/audio/${existingEvaluation}`, {
-                      method: 'GET',
-                      headers: {
-                        'X-API-Key': apiKey,
-                        'X-User-Id': userId
-                      }
-                    });
-        
-                    if (!response.ok) throw new Error(`Ошибка загрузки: ${response.status}`);
-                    const blob = await response.blob();
-                    setAudioUrl(URL.createObjectURL(blob));
-                  } catch (err) {
-                    console.error('Ошибка при загрузке аудио:', err);
-                    setError(err.message);
-                  }
+                const loadAudio = async () => {
+                    if (existingEvaluation?.id && directions[0]?.hasFileUpload) {
+                        const url = await getAudioUrlWithAuth(existingEvaluation.id, apiKey, userId);
+                        setAudioUrl(url);
+                    }
                 };
-        
-                fetchAudio();
+                loadAudio();
             }, [existingEvaluation, apiKey, userId]);
             
             const handleFileChange = (e) => {
