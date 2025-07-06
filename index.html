@@ -31,6 +31,7 @@
     <script type="text/babel">
         const { useState, useEffect } = React;
         const API_BASE_URL = 'https://otp-wif3.onrender.com';
+
         const getAudioUrlWithAuth = async (evaluationId, apiKey, userId) => {
             try {
                 const response = await fetch(`${API_BASE_URL}/api/audio/${evaluationId}`, {
@@ -40,8 +41,7 @@
                         'X-User-Id': userId
                     }
                 });
-                if (!response.ok) throw new Error('Failed to fetch audio');
-        
+                if (!response.ok) throw new Error(`Failed to fetch audio: ${response.status}`);
                 const blob = await response.blob();
                 return URL.createObjectURL(blob);
             } catch (error) {
@@ -50,7 +50,6 @@
             }
         };
 
-        // Login Modal Component (unchanged)
         const LoginModal = ({ isOpen, onClose, onLogin }) => {
             const [login, setLogin] = useState('');
             const [password, setPassword] = useState('');
@@ -119,45 +118,59 @@
             );
         };
 
-        // Evaluation Modal Component
         const EvaluationModal = ({ isOpen, onClose, onSubmit, directions, operator, selectedMonth, apiKey, userId, userName, existingEvaluation }) => {
             const [callFile, setCallFile] = useState(null);
-            const [audioUrl, setAudioUrl] = useState(existingEvaluation?.audioUrl || null);
-            const [scores, setScores] = useState(existingEvaluation?.scores || []);
-            const [criterionComments, setCriterionComments] = useState(existingEvaluation?.criterionComments || []);
-            const [phoneNumber, setPhoneNumber] = useState(existingEvaluation?.phoneNumber || '');
+            const [audioUrl, setAudioUrl] = useState(null);
+            const [audioError, setAudioError] = useState(null);
+            const [scores, setScores] = useState([]);
+            const [criterionComments, setCriterionComments] = useState([]);
+            const [phoneNumber, setPhoneNumber] = useState('');
             const [shownCriterionIndex, setShownCriterionIndex] = useState(null);
-            const [assignedMonth, setAssignedMonth] = useState(existingEvaluation?.assignedMonth || selectedMonth);
-            const [isDraft, setIsDraft] = useState(existingEvaluation?.isDraft || false);
+            const [assignedMonth, setAssignedMonth] = useState(selectedMonth);
+            const [isDraft, setIsDraft] = useState(false);
 
             useEffect(() => {
-                if (isOpen && operator && directions.length > 0 && !existingEvaluation) {
-                    setScores(directions[0].criteria.map(() => 'Correct'));
-                    setCriterionComments(directions[0].criteria.map(() => ''));
-                    setCallFile(null);
-                    setAudioUrl(null);
-                    setPhoneNumber('');
-                    setAssignedMonth(selectedMonth);
-                    setShownCriterionIndex(null);
-                    setIsDraft(false);
+                if (isOpen) {
+                    if (existingEvaluation) {
+                        setScores(existingEvaluation.scores || []);
+                        setCriterionComments(existingEvaluation.criterionComments || []);
+                        setPhoneNumber(existingEvaluation.phoneNumber || '');
+                        setAssignedMonth(existingEvaluation.assignedMonth || selectedMonth);
+                        setIsDraft(existingEvaluation.isDraft || false);
+                        setAudioUrl(existingEvaluation.audioUrl || null);
+                    } else {
+                        setScores(directions[0]?.criteria.map(() => 'Correct') || []);
+                        setCriterionComments(directions[0]?.criteria.map(() => '') || []);
+                        setCallFile(null);
+                        setAudioUrl(null);
+                        setPhoneNumber('');
+                        setAssignedMonth(selectedMonth);
+                        setIsDraft(false);
+                    }
                 }
-            }, [isOpen, operator, directions, selectedMonth, existingEvaluation]);
+            }, [isOpen, existingEvaluation, directions, selectedMonth]);
 
             useEffect(() => {
                 const loadAudio = async () => {
-                    if (existingEvaluation?.id && directions[0]?.hasFileUpload) {
+                    if (existingEvaluation?.id && directions[0]?.hasFileUpload && apiKey && userId) {
+                        setAudioError(null);
                         const url = await getAudioUrlWithAuth(existingEvaluation.id, apiKey, userId);
-                        setAudioUrl(url);
+                        if (url) {
+                            setAudioUrl(url);
+                        } else {
+                            setAudioError('Failed to load audio');
+                        }
                     }
                 };
                 loadAudio();
-            }, [existingEvaluation, apiKey, userId]);
-            
+            }, [existingEvaluation, apiKey, userId, directions]);
+
             const handleFileChange = (e) => {
                 const file = e.target.files[0];
                 setCallFile(file);
                 const newAudioUrl = file ? URL.createObjectURL(file) : null;
                 setAudioUrl(newAudioUrl);
+                setAudioError(null);
             };
 
             const handleScoreChange = (index, value) => {
@@ -265,7 +278,7 @@
                     });
                     const result = await response.json();
                     if (result.status === 'success') {
-                        onSubmit(null); // Remove draft from list
+                        onSubmit(null);
                         onClose();
                     } else {
                         alert('Failed to delete draft: ' + result.error);
@@ -301,6 +314,7 @@
                                         </audio>
                                     </div>
                                 )}
+                                {audioError && <p className="text-red-500 mt-2">{audioError}</p>}
                             </div>
                         )}
                         <label className="block mb-2 font-medium mt-4">Phone Number</label>
@@ -459,7 +473,6 @@
             );
         };
 
-        // Main App Component
         const App = () => {
             const [userName, setUserName] = useState(null);
             const [calls, setCalls] = useState([]);
@@ -497,7 +510,6 @@
                 const fetchData = async () => {
                     if (!apiKey || !userId) return;
                     try {
-                        // Fetch directions
                         const directionsResponse = await fetch(`${API_BASE_URL}/api/admin/directions`, {
                             headers: {
                                 'X-API-Key': apiKey,
@@ -508,8 +520,7 @@
                         if (directionsData.status === 'success') {
                             setDirections(directionsData.directions);
                         }
-            
-                        // Fetch operators
+
                         const operatorsResponse = await fetch(`${API_BASE_URL}/api/sv/data?id=${userId}`, {
                             headers: {
                                 'X-API-Key': apiKey,
@@ -520,8 +531,7 @@
                         if (operatorsData.status === 'success') {
                             setOperators(operatorsData.operators);
                         }
-            
-                        // Fetch evaluations
+
                         if (selectedOperator) {
                             const evaluationsResponse = await fetch(`${API_BASE_URL}/api/call_evaluations?operator_id=${selectedOperator.id}`, {
                                 headers: {
@@ -531,21 +541,28 @@
                             });
                             const evaluationsData = await evaluationsResponse.json();
                             if (evaluationsData.status === 'success') {
-                                setCalls(evaluationsData.evaluations.map(evaluation => ({
-                                    id: evaluation.id,
-                                    fileName: `Call ${evaluation.phone_number}`,
-                                    totalScore: evaluation.score.toFixed(2),
-                                    date: evaluation.evaluation_date,
-                                    phoneNumber: evaluation.phone_number,
-                                    combinedComment: evaluation.comment,
-                                    selectedDirection: selectedOperator.direction,
-                                    directions: directionsData.directions.filter(d => d.name === selectedOperator.direction),
-                                    scores: evaluation.scores || [], // Use scores from enhanced evaluations
-                                    criterionComments: evaluation.criterion_comments || [],
-                                    audioUrl: evaluation.audio_path ? `${API_BASE_URL}/api/audio/${evaluation.id}` : null,
-                                    isDraft: evaluation.is_draft,
-                                    assignedMonth: evaluation.month
-                                })));
+                                const updatedCalls = await Promise.all(evaluationsData.evaluations.map(async (evaluation) => {
+                                    let audioUrl = null;
+                                    if (evaluation.audio_path) {
+                                        audioUrl = await getAudioUrlWithAuth(evaluation.id, apiKey, userId);
+                                    }
+                                    return {
+                                        id: evaluation.id,
+                                        fileName: `Call ${evaluation.phone_number}`,
+                                        totalScore: evaluation.score.toFixed(2),
+                                        date: evaluation.evaluation_date,
+                                        phoneNumber: evaluation.phone_number,
+                                        combinedComment: evaluation.comment,
+                                        selectedDirection: selectedOperator.direction,
+                                        directions: directionsData.directions.filter(d => d.name === selectedOperator.direction),
+                                        scores: evaluation.scores || [],
+                                        criterionComments: evaluation.criterion_comments || [],
+                                        audioUrl,
+                                        isDraft: evaluation.is_draft,
+                                        assignedMonth: evaluation.month
+                                    };
+                                }));
+                                setCalls(updatedCalls);
                             }
                         }
                     } catch (err) {
@@ -566,7 +583,6 @@
             const handleEvaluateCall = (evaluationData) => {
                 setCalls(prevCalls => {
                     if (!evaluationData) {
-                        // Handle draft deletion
                         return prevCalls.filter(c => c.id !== editingEvaluation?.id);
                     }
                     const newCall = {
@@ -812,7 +828,6 @@
             );
         };
 
-        // Render the application
         const root = ReactDOM.createRoot(document.getElementById('root'));
         root.render(<App />);
     </script>
