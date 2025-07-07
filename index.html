@@ -165,6 +165,7 @@
                         }
                     }
                 };
+                loadAudio();
             }, [existingEvaluation, apiKey, userId, directions]);
 
             const handleFileChange = (e) => {
@@ -571,9 +572,6 @@
                             if (evaluationsData.status === 'success') {
                                 const updatedCalls = await Promise.all(evaluationsData.evaluations.map(async (evaluation) => {
                                     let audioUrl = null;
-                                    if (evaluation.audio_path) {
-                                        audioUrl = await getAudioUrlWithAuth(evaluation.id, apiKey, userId);
-                                    }
                                     return {
                                         id: evaluation.id,
                                         fileName: `Call ${evaluation.phone_number}`,
@@ -633,8 +631,25 @@
                 setEditingEvaluation(null);
             };
 
-            const handleSelectCall = (callId) => {
-                setExpandedDetails(callId === expandedDetails ? null : callId);
+            const handleSelectCall = async (callId) => {
+                const call = calls.find(c => c.id === callId);
+                if (!call) return;
+            
+                if (expandedDetails !== callId) {
+                    // Загружаем аудио при первом открытии
+                    if (!call.audioUrl && call.directions?.[0]?.hasFileUpload) {
+                        const url = await getAudioUrlWithAuth(call.id, apiKey, userId);
+                        if (url) {
+                            // Обновляем audioUrl в нужной записи
+                            setCalls(prev =>
+                                prev.map(c => c.id === call.id ? { ...c, audioUrl: url } : c)
+                            );
+                        }
+                    }
+                    setExpandedDetails(callId);
+                } else {
+                    setExpandedDetails(null);
+                }
             };
 
             const handleEditDraft = (call) => {
@@ -788,28 +803,12 @@
                                                                                 ))}
                                                                             </tbody>
                                                                         </table>
-                                                                        {!audioUrl ? (
-                                                                          <button
-                                                                            onClick={async () => {
-                                                                              setAudioError(null);
-                                                                              const url = await getAudioUrlWithAuth(existingEvaluation.id, apiKey, userId);
-                                                                              if (url) {
-                                                                                setAudioUrl(url);
-                                                                              } else {
-                                                                                setAudioError('Ошибка при загрузке аудио');
-                                                                              }
-                                                                            }}
-                                                                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-                                                                          >
-                                                                            🔊 Загрузить аудио
-                                                                          </button>
-                                                                        ) : (
-                                                                          <audio controls className="w-full max-w-[400px] mt-2">
-                                                                              <source src={audioUrl} type="audio/mpeg" />
-                                                                              Your browser does not support the audio element.
-                                                                          </audio>
+                                                                        {call.audioUrl && call.directions[0]?.hasFileUpload && (
+                                                                            <audio controls className="w-full max-w-[400px] mt-2">
+                                                                                <source src={call.audioUrl} type="audio/mpeg" />
+                                                                                Your browser does not support the audio element.
+                                                                            </audio>
                                                                         )}
-                                                                        {audioError && <p className="text-red-500 mt-2">{audioError}</p>}
                                                                     </div>
                                                                 ) : (
                                                                     <p>No criteria evaluated.</p>
