@@ -41,9 +41,16 @@
                         'X-User-Id': userId
                     }
                 });
+        
                 if (!response.ok) throw new Error(`Failed to fetch audio: ${response.status}`);
-                const blob = await response.blob();
-                return URL.createObjectURL(blob);
+        
+                const data = await response.json();
+                if (data && data.url) {
+                    return data.url; // Прямая ссылка на аудио
+                } else {
+                    console.error("No signed URL returned in response:", data);
+                    return null;
+                }
             } catch (error) {
                 console.error('Audio fetch error:', error);
                 return null;
