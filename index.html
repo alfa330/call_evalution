@@ -165,7 +165,6 @@
                         }
                     }
                 };
-                loadAudio();
             }, [existingEvaluation, apiKey, userId, directions]);
 
             const handleFileChange = (e) => {
@@ -789,12 +788,28 @@
                                                                                 ))}
                                                                             </tbody>
                                                                         </table>
-                                                                        {call.audioUrl && call.directions[0]?.hasFileUpload && (
-                                                                            <audio controls className="w-full max-w-[400px] mt-2">
-                                                                                <source src={call.audioUrl} type="audio/mpeg" />
-                                                                                Your browser does not support the audio element.
-                                                                            </audio>
+                                                                        {!audioUrl ? (
+                                                                          <button
+                                                                            onClick={async () => {
+                                                                              setAudioError(null);
+                                                                              const url = await getAudioUrlWithAuth(existingEvaluation.id, apiKey, userId);
+                                                                              if (url) {
+                                                                                setAudioUrl(url);
+                                                                              } else {
+                                                                                setAudioError('Ошибка при загрузке аудио');
+                                                                              }
+                                                                            }}
+                                                                            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                                                                          >
+                                                                            🔊 Загрузить аудио
+                                                                          </button>
+                                                                        ) : (
+                                                                          <audio controls className="w-full max-w-[400px] mt-2">
+                                                                              <source src={audioUrl} type="audio/mpeg" />
+                                                                              Your browser does not support the audio element.
+                                                                          </audio>
                                                                         )}
+                                                                        {audioError && <p className="text-red-500 mt-2">{audioError}</p>}
                                                                     </div>
                                                                 ) : (
                                                                     <p>No criteria evaluated.</p>
