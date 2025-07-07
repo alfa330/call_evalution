@@ -124,7 +124,8 @@
             const [audioError, setAudioError] = useState(null);
             const [scores, setScores] = useState([]);
             const [criterionComments, setCriterionComments] = useState([]);
-            const [phoneNumber, setPhoneNumber] = useState('');
+            const [phoneNumber, setPhoneNumber] = useState('7');
+            const [phoneError, setPhoneError] = useState('');
             const [shownCriterionIndex, setShownCriterionIndex] = useState(null);
             const [assignedMonth, setAssignedMonth] = useState(selectedMonth);
             const [isDraft, setIsDraft] = useState(false);
@@ -134,18 +135,20 @@
                     if (existingEvaluation) {
                         setScores(existingEvaluation.scores || []);
                         setCriterionComments(existingEvaluation.criterionComments || []);
-                        setPhoneNumber(existingEvaluation.phoneNumber || '');
+                        setPhoneNumber(existingEvaluation.phoneNumber || '7');
                         setAssignedMonth(existingEvaluation.assignedMonth || selectedMonth);
                         setIsDraft(existingEvaluation.isDraft || false);
                         setAudioUrl(existingEvaluation.audioUrl || null);
+                        setPhoneError('');
                     } else {
                         setScores(directions[0]?.criteria.map(() => 'Correct') || []);
                         setCriterionComments(directions[0]?.criteria.map(() => '') || []);
                         setCallFile(null);
                         setAudioUrl(null);
-                        setPhoneNumber('');
+                        setPhoneNumber('7');
                         setAssignedMonth(selectedMonth);
                         setIsDraft(false);
+                        setPhoneError('');
                     }
                 }
             }, [isOpen, existingEvaluation, directions, selectedMonth]);
@@ -190,13 +193,38 @@
                 setCriterionComments(newComments);
             };
 
+            const handlePhoneChange = (e) => {
+                let value = e.target.value;
+                // Ensure the input starts with '7'
+                if (!value.startsWith('7')) {
+                    value = '7' + value.replace(/^7/, '');
+                }
+                // Allow only digits and the leading '7'
+                value = value.replace(/[^0-9]/g, '');
+                // Limit to 11 digits
+                if (value.length > 11) {
+                    value = value.slice(0, 11);
+                }
+                setPhoneNumber(value);
+
+                // Validate phone number
+                if (value.length === 11 && value.startsWith('7')) {
+                    setPhoneError('');
+                } else if (value.length < 11) {
+                    setPhoneError('Phone number must be exactly 11 digits');
+                } else if (!value.startsWith('7')) {
+                    setPhoneError('Phone number must start with 7');
+                }
+            };
+
             const showCriterionValue = (index) => {
                 setShownCriterionIndex(shownCriterionIndex === index ? null : index);
             };
 
             const isSubmitDisabled = directions.length === 0 ||
                 directions[0]?.criteria.length === 0 ||
-                !(phoneNumber.length >= 10 && phoneNumber.length <= 30) ||
+                phoneNumber.length !== 11 ||
+                !phoneNumber.startsWith('7') ||
                 (directions[0]?.hasFileUpload && !callFile && !audioUrl) ||
                 scores.some((score, index) => score === 'Error' && !criterionComments[index].trim());
 
@@ -321,12 +349,13 @@
                         <input
                             type="text"
                             value={phoneNumber}
-                            onChange={(e) => setPhoneNumber(e.target.value)}
-                            placeholder="Enter phone number (10-30 characters)"
+                            onChange={handlePhoneChange}
+                            placeholder="Enter phone number (starts with 7, 11 digits)"
                             className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                                phoneNumber.length >= 10 && phoneNumber.length <= 30 ? 'focus:ring-blue-500 border-gray-300' : 'focus:ring-red-500 border-red-300'
+                                phoneNumber.length === 11 && phoneNumber.startsWith('7') ? 'focus:ring-blue-500 border-gray-300' : 'focus:ring-red-500 border-red-300'
                             }`}
                         />
+                        {phoneError && <p className="text-red-500 mt-1 text-sm">{phoneError}</p>}
                         <label className="block mb-2 font-medium mt-4">Criteria Evaluation</label>
                         {directions.length === 0 || directions[0]?.criteria.length === 0 ? (
                             <p className="text-red-500">No criteria defined for this direction. Please set up criteria in the Monitoring Scale.</p>
