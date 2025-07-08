@@ -533,7 +533,7 @@
             const [expandedDetails, setExpandedDetails] = useState(null);
             const [editingEvaluation, setEditingEvaluation] = useState(null);
             const [isLoading, setIsLoading] = useState(false);
-            const [isAudioLoading, setIsAudioLoading] = useState(false);
+            const [loadingCallId, setLoadingCallId] = useState(null);
             const MAX_EVALUATIONS = 20;
 
             const getLast12Months = () => {
@@ -609,7 +609,7 @@
                                 setCalls(updatedCalls);
                             }
                         } else {
-                            setCalls([]); // Clear calls if no operator is selected
+                            setCalls([]);
                         }
                     } catch (err) {
                         console.error('Error fetching data:', err);
@@ -656,29 +656,31 @@
             const handleSelectCall = async (callId) => {
                 const call = calls.find(c => c.id === callId);
                 if (!call) return;
-            
+
+                if (call.isDraft) {
+                    handleEditDraft(call);
+                    return;
+                }
+
                 if (expandedDetails !== callId) {
-                    setIsAudioLoading(true); // Устанавливаем loading сразу
-                    if (!call.audioUrl && call.directions?.[0]?.hasFileUpload) {
-                        try {
+                    setLoadingCallId(callId);
+                    try {
+                        if (!call.audioUrl && call.directions?.[0]?.hasFileUpload) {
                             const url = await getAudioUrlWithAuth(call.id, apiKey, userId);
                             if (url) {
                                 setCalls(prev =>
                                     prev.map(c => c.id === call.id ? { ...c, audioUrl: url } : c)
                                 );
                             }
-                        } catch (err) {
-                            console.error('Error loading audio:', err);
-                        } finally {
-                            setIsAudioLoading(false); // Сбрасываем loading после завершения
                         }
-                    } else {
-                        setIsAudioLoading(false); // Если аудио уже загружено, сбрасываем loading
+                        setExpandedDetails(callId);
+                    } catch (err) {
+                        console.error('Error loading audio:', err);
+                    } finally {
+                        setLoadingCallId(null);
                     }
-                    setExpandedDetails(callId);
                 } else {
                     setExpandedDetails(null);
-                    setIsAudioLoading(false); // Сбрасываем loading при закрытии
                 }
             };
 
@@ -718,9 +720,9 @@
                 const operatorId = parseInt(e.target.value);
                 const newOperator = operators.find(op => op.id === operatorId) || null;
                 setSelectedOperator(newOperator);
-                setCalls([]); // Clear the calls immediately
-                setExpandedDetails(null); // Reset expanded details
-                setIsLoading(true); // Show loading state
+                setCalls([]);
+                setExpandedDetails(null);
+                setIsLoading(true);
             };
 
             const callsByMonth = calls.filter(call => call.assignedMonth === selectedMonth);
@@ -729,7 +731,7 @@
             return (
                 <div className="min-h-screen bg-gray-100 p-6 max-w-[1152px] mx-auto">
                     <div className="flex justify-between items-center mb-6">
-                        <h1 className="text-3xl font-bold">Supervisor Call Evaluation</h1>
+                        <h1 className="text-3xl font-bold">Supervisor Call earthly Evaluation</h1>
                         <div className="flex space-x-2">
                             {userRole === 'admin' && (
                                 <button
@@ -807,10 +809,10 @@
                                                     className={`hover:bg-gray-50 transition-colors duration-200 cursor-pointer ${
                                                         call.isDraft ? 'bg-yellow-100' : 'bg-green-50'
                                                     } ${expandedDetails === call.id ? 'bg-blue-100' : ''}`}
-                                                    onClick={() => call.isDraft ? handleEditDraft(call) : handleSelectCall(call.id)}
+                                                    onClick={() => handleSelectCall(call.id)}
                                                 >
                                                     <td className="p-4 border-b text-sm">
-                                                        {isAudioLoading && expandedDetails === call.id ? (
+                                                        {loadingCallId === call.id ? (
                                                             <div className="flex items-center">
                                                                 <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500 mr-2"></div>
                                                                 <span>Loading...</span>
@@ -844,9 +846,8 @@
                                                                             <tbody>
                                                                                 {call.directions[0].criteria.map((criterion, critIndex) => (
                                                                                     <tr key={critIndex}>
-                                                                                        <td className="p-2 border-b text-sm">{criterion Harmonizers}</td>
+                                                                                        <td className="p-2 border-b text-sm">{criterion.name}</td>
                                                                                         <td className="p-2 border-b text-sm">{criterion.isCritical ? '(Critical)' : `${criterion.weight}%`}</td>
-                                                                                        <td classiamas</td>
                                                                                         <td className="p-2 border-b text-sm">
                                                                                             <span className={`${call.scores[critIndex] === 'Error' ? 'text-red-500' : 'text-green-500'}`}>
                                                                                                 {call.scores[critIndex] || 'Correct'}
@@ -863,7 +864,7 @@
                                                                                 Your browser does not support the audio element.
                                                                             </audio>
                                                                         )}
-                                                                        {isAudioLoading && expandedDetails === call.id && (
+                                                                        {loadingCallId === call.id && (
                                                                             <div className="flex items-center mt-2">
                                                                                 <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500 mr-2"></div>
                                                                                 <span className="text-sm text-gray-600">Loading audio...</span>
