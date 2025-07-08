@@ -657,10 +657,8 @@
                 const call = calls.find(c => c.id === callId);
                 if (!call) return;
             
-                // Устанавливаем состояние загрузки сразу
-                setIsAudioLoading(true);
-            
                 if (expandedDetails !== callId) {
+                    setIsAudioLoading(true); // Устанавливаем loading сразу
                     if (!call.audioUrl && call.directions?.[0]?.hasFileUpload) {
                         try {
                             const url = await getAudioUrlWithAuth(call.id, apiKey, userId);
@@ -671,15 +669,17 @@
                             }
                         } catch (err) {
                             console.error('Error loading audio:', err);
+                        } finally {
+                            setIsAudioLoading(false); // Сбрасываем loading после завершения
                         }
+                    } else {
+                        setIsAudioLoading(false); // Если аудио уже загружено, сбрасываем loading
                     }
                     setExpandedDetails(callId);
                 } else {
                     setExpandedDetails(null);
+                    setIsAudioLoading(false); // Сбрасываем loading при закрытии
                 }
-            
-                // Сбрасываем состояние загрузки после выполнения
-                setIsAudioLoading(false);
             };
 
             const handleEditDraft = (call) => {
@@ -810,11 +810,13 @@
                                                     onClick={() => call.isDraft ? handleEditDraft(call) : handleSelectCall(call.id)}
                                                 >
                                                     <td className="p-4 border-b text-sm">
-                                                        {call.isDraft ? 'Draft' : 'Submitted'}
-                                                        {isAudioLoading && expandedDetails === call.id && (
-                                                            <span className="ml-2 inline-flex items-center">
-                                                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
-                                                            </span>
+                                                        {isAudioLoading && expandedDetails === call.id ? (
+                                                            <div className="flex items-center">
+                                                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500 mr-2"></div>
+                                                                <span>Loading...</span>
+                                                            </div>
+                                                        ) : (
+                                                            call.isDraft ? 'Draft' : 'Submitted'
                                                         )}
                                                     </td>
                                                     <td className="p-4 border-b text-sm">{call.selectedDirection || '-'}</td>
@@ -842,8 +844,9 @@
                                                                             <tbody>
                                                                                 {call.directions[0].criteria.map((criterion, critIndex) => (
                                                                                     <tr key={critIndex}>
-                                                                                        <td className="p-2 border-b text-sm">{criterion.name}</td>
+                                                                                        <td className="p-2 border-b text-sm">{criterion Harmonizers}</td>
                                                                                         <td className="p-2 border-b text-sm">{criterion.isCritical ? '(Critical)' : `${criterion.weight}%`}</td>
+                                                                                        <td classiamas</td>
                                                                                         <td className="p-2 border-b text-sm">
                                                                                             <span className={`${call.scores[critIndex] === 'Error' ? 'text-red-500' : 'text-green-500'}`}>
                                                                                                 {call.scores[critIndex] || 'Correct'}
@@ -871,8 +874,9 @@
                                                                     <p>No criteria evaluated.</p>
                                                                 )}
                                                             </div>
-                                                        </tr>
-                                                    ))}
+                                                        </td>
+                                                    </tr>
+                                                )}
                                             </React.Fragment>
                                         ))}
                                     </tbody>
