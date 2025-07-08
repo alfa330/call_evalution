@@ -136,6 +136,7 @@
             const [shownCriterionIndex, setShownCriterionIndex] = useState(null);
             const [assignedMonth, setAssignedMonth] = useState(selectedMonth);
             const [isDraft, setIsDraft] = useState(false);
+            const [isSubmitting, setIsSubmitting] = useState(false);
 
             useEffect(() => {
                 if (isOpen) {
@@ -236,6 +237,7 @@
                 scores.some((score, index) => score === 'Error' && !criterionComments[index].trim());
 
             const handleSubmit = async (saveAsDraft = false) => {
+                setIsSubmitting(true);
                 if (isSubmitDisabled && !saveAsDraft) return;
                 const criteria = directions[0]?.criteria || [];
                 const hasCriticalError = criteria.some((criterion, index) => 
@@ -298,6 +300,8 @@
                     }
                 } catch (err) {
                     alert('Failed to submit evaluation: ' + err.message);
+                } finally {
+                    setIsSubmitting(false);
                 }
             };
 
@@ -493,9 +497,17 @@
                                 className={`px-4 py-2 rounded text-white transition-colors duration-200 ${
                                     isSubmitDisabled ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'
                                 }`}
-                                disabled={isSubmitDisabled}
+                                disabled={isSubmitDisabled || isSubmitting}
                             >
-                                Submit
+                                {isSubmitting ? (
+                                    <span className="flex items-center justify-center">
+                                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                        </svg>
+                                        Processing...
+                                    </span>
+                                ) : 'Submit'}
                             </button>
                             <button
                                 onClick={onClose}
@@ -524,6 +536,8 @@
             const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
             const [expandedDetails, setExpandedDetails] = useState(null);
             const [editingEvaluation, setEditingEvaluation] = useState(null);
+            const [isLoading, setIsLoading] = useState(false);
+            const [isAudioLoading, setIsAudioLoading] = useState(false);
             const MAX_EVALUATIONS = 20;
 
             const getLast12Months = () => {
@@ -545,6 +559,7 @@
             useEffect(() => {
                 const fetchData = async () => {
                     if (!apiKey || !userId) return;
+                    setIsLoading(true);
                     try {
                         const directionsResponse = await fetch(`${API_BASE_URL}/api/admin/directions`, {
                             headers: {
@@ -600,6 +615,8 @@
                         }
                     } catch (err) {
                         console.error('Error fetching data:', err);
+                    } finally {
+                        setIsLoading(false);
                     }
                 };
                 fetchData();
@@ -645,12 +662,18 @@
                 if (expandedDetails !== callId) {
                     // Загружаем аудио при первом открытии
                     if (!call.audioUrl && call.directions?.[0]?.hasFileUpload) {
-                        const url = await getAudioUrlWithAuth(call.id, apiKey, userId);
-                        if (url) {
-                            // Обновляем audioUrl в нужной записи
-                            setCalls(prev =>
-                                prev.map(c => c.id === call.id ? { ...c, audioUrl: url } : c)
-                            );
+                        setIsAudioLoading(true);
+                        try {
+                            const url = await getAudioUrlWithAuth(call.id, apiKey, userId);
+                            if (url) {
+                                setCalls(prev =>
+                                    prev.map(c => c.id === call.id ? { ...c, audioUrl: url } : c)
+                                );
+                            }
+                        } catch (err) {
+                            console.error('Error loading audio:', err);
+                        } finally {
+                            setIsAudioLoading(false);
                         }
                     }
                     setExpandedDetails(callId);
@@ -749,7 +772,12 @@
                                 </div>
                             </div>
                         </div>
-                        {callsByMonth.length === 0 ? (
+                        {callsByMonth.length === 0 ? isLoading ? (
+                            <div className="text-center py-4">
+                                <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                                <p className="mt-2 text-gray-600">Loading evaluations...</p>
+                            </div>
+                        ) : (
                             <p className="text-center text-gray-600">No calls evaluated for {monthOptions.find(m => m.value === selectedMonth)?.label || selectedMonth}.</p>
                         ) : (
                             <div className="overflow-x-auto">
@@ -815,6 +843,12 @@
                                                                                 <source src={call.audioUrl} type="audio/mpeg" />
                                                                                 Your browser does not support the audio element.
                                                                             </audio>
+                                                                        )}
+                                                                        {isAudioLoading && expandedDetails === call.id && (
+                                                                            <div className="flex items-center mt-2">
+                                                                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500 mr-2"></div>
+                                                                                <span className="text-sm text-gray-600">Loading audio...</span>
+                                                                            </div>
                                                                         )}
                                                                     </div>
                                                                 ) : (
