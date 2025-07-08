@@ -46,7 +46,7 @@
         
                 const data = await response.json();
                 if (data && data.url) {
-                    return data.url; // Прямая ссылка на аудио
+                    return data.url;
                 } else {
                     console.error("No signed URL returned in response:", data);
                     return null;
@@ -203,19 +203,15 @@
 
             const handlePhoneChange = (e) => {
                 let value = e.target.value;
-                // Ensure the input starts with '7'
                 if (!value.startsWith('7')) {
                     value = '7' + value.replace(/^7/, '');
                 }
-                // Allow only digits and the leading '7'
                 value = value.replace(/[^0-9]/g, '');
-                // Limit to 11 digits
                 if (value.length > 11) {
                     value = value.slice(0, 11);
                 }
                 setPhoneNumber(value);
 
-                // Validate phone number
                 if (value.length === 11 && value.startsWith('7')) {
                     setPhoneError('');
                 } else if (value.length < 11) {
@@ -612,6 +608,8 @@
                                 }));
                                 setCalls(updatedCalls);
                             }
+                        } else {
+                            setCalls([]); // Clear calls if no operator is selected
                         }
                     } catch (err) {
                         console.error('Error fetching data:', err);
@@ -660,7 +658,6 @@
                 if (!call) return;
             
                 if (expandedDetails !== callId) {
-                    // Загружаем аудио при первом открытии
                     if (!call.audioUrl && call.directions?.[0]?.hasFileUpload) {
                         setIsAudioLoading(true);
                         try {
@@ -714,6 +711,15 @@
                 }
             };
 
+            const handleOperatorChange = (e) => {
+                const operatorId = parseInt(e.target.value);
+                const newOperator = operators.find(op => op.id === operatorId) || null;
+                setSelectedOperator(newOperator);
+                setCalls([]); // Clear the calls immediately
+                setExpandedDetails(null); // Reset expanded details
+                setIsLoading(true); // Show loading state
+            };
+
             const callsByMonth = calls.filter(call => call.assignedMonth === selectedMonth);
             const isMaxEvaluationsReached = callsByMonth.filter(c => !c.isDraft).length >= MAX_EVALUATIONS;
 
@@ -747,7 +753,7 @@
                                     <label className="mr-2 font-medium">Operator:</label>
                                     <select
                                         value={selectedOperator?.id || ''}
-                                        onChange={(e) => setSelectedOperator(operators.find(op => op.id === parseInt(e.target.value)) || null)}
+                                        onChange={handleOperatorChange}
                                         className="p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                                     >
                                         <option value="">Select Operator</option>
