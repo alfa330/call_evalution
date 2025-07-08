@@ -657,9 +657,11 @@
                 const call = calls.find(c => c.id === callId);
                 if (!call) return;
             
+                // Устанавливаем состояние загрузки сразу
+                setIsAudioLoading(true);
+            
                 if (expandedDetails !== callId) {
                     if (!call.audioUrl && call.directions?.[0]?.hasFileUpload) {
-                        setIsAudioLoading(true);
                         try {
                             const url = await getAudioUrlWithAuth(call.id, apiKey, userId);
                             if (url) {
@@ -669,14 +671,15 @@
                             }
                         } catch (err) {
                             console.error('Error loading audio:', err);
-                        } finally {
-                            setIsAudioLoading(false);
                         }
                     }
                     setExpandedDetails(callId);
                 } else {
                     setExpandedDetails(null);
                 }
+            
+                // Сбрасываем состояние загрузки после выполнения
+                setIsAudioLoading(false);
             };
 
             const handleEditDraft = (call) => {
