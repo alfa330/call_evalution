@@ -806,7 +806,14 @@
                                                     } ${expandedDetails === call.id ? 'bg-blue-100' : ''}`}
                                                     onClick={() => call.isDraft ? handleEditDraft(call) : handleSelectCall(call.id)}
                                                 >
-                                                    <td className="p-4 border-b text-sm">{call.isDraft ? 'Draft' : 'Submitted'}</td>
+                                                    <td className="p-4 border-b text-sm">
+                                                        {call.isDraft ? 'Draft' : 'Submitted'}
+                                                        {isAudioLoading && expandedDetails === call.id && (
+                                                            <span className="ml-2 inline-flex items-center">
+                                                                <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-blue-500"></div>
+                                                            </span>
+                                                        )}
+                                                    </td>
                                                     <td className="p-4 border-b text-sm">{call.selectedDirection || '-'}</td>
                                                     <td className="p-4 border-b text-sm">{call.phoneNumber || '-'}</td>
                                                     <td className="p-4 border-b text-sm">{call.totalScore}</td>
@@ -861,9 +868,8 @@
                                                                     <p>No criteria evaluated.</p>
                                                                 )}
                                                             </div>
-                                                        </td>
-                                                    </tr>
-                                                )}
+                                                        </tr>
+                                                    ))}
                                             </React.Fragment>
                                         ))}
                                     </tbody>
