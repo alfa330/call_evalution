@@ -634,10 +634,10 @@
                                 let attempts = 0;
                                 const maxAttempts = 10;
                                 const delay = 1000; // 100ms между попытками
-                                
+                                console.log(operators);
                                 while (attempts < maxAttempts) {
                                     if (operators.length > 0) {
-                                        console.log(operators);
+                                        
                                         const operator = operators.find(op => op.id === tokenData.operatorId);
                                         if (operator) {
                                             setSelectedOperator(operator);
