@@ -626,40 +626,32 @@
                             setUserRole(tokenData.role);
                             setUserName(tokenData.name);
                             
+                            // Сохраняем данные оператора из токена в состоянии
+                            setSelectedOperator({
+                                id: tokenData.operatorId,
+                                name: tokenData.operatorName
+                            });
+                            
                             // Удаляем токен из URL
                             window.history.replaceState({}, document.title, window.location.pathname);
-                            console.log(tokenData.operatorId);
-                            // Ждем загрузки операторов перед выбором
-                            const waitForOperators = async () => {
-                                let attempts = 0;
-                                const maxAttempts = 10;
-                                const delay = 1000; // 100ms между попытками
-                                
-                                while (attempts < maxAttempts) {
-                                    console.log(operators);
-                                    if (operators.length > 0) {
-                                        
-                                        const operator = operators.find(op => op.id === tokenData.operatorId);
-                                        if (operator) {
-                                            setSelectedOperator(operator);
-                                            break;
-                                        }
-                                    }
-                                    attempts++;
-                                    console.log(attempts);
-                                    await new Promise(resolve => setTimeout(resolve, delay));
-                                }
-                            };
-                            
-                            waitForOperators();
-                            
                             setShowLoginModal(false);
                         }
                     } catch (e) {
                         console.error('Token decoding error:', e);
                     }
                 }
-            }, [operators]);
+            }, []); // Убираем зависимость от operators
+            
+            // Новый эффект для выбора оператора после загрузки
+            useEffect(() => {
+                if (selectedOperator?.id && operators.length > 0) {
+                    // Ищем оператора по ID из токена
+                    const operatorFromToken = operators.find(op => op.id === selectedOperator.id);
+                    if (operatorFromToken) {
+                        setSelectedOperator(operatorFromToken);
+                    }
+                }
+            }, [operators, selectedOperator?.id]);
 
             useEffect(() => {
                 if (!apiKey || !userId) return;
