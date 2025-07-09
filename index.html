@@ -615,30 +615,48 @@
                 const token = params.get('token');
                 
                 if (token) {
-                try {
-                    const decodedToken = decodeURIComponent(token);
-                    const tokenData = JSON.parse(safeAtob(decodedToken));
-                    
-                    // Проверяем срок действия токена (5 минут)
-                    if (Date.now() - tokenData.timestamp < 300000) {
-                    setApiKey(tokenData.apiKey);
-                    setUserId(tokenData.userId);
-                    setUserRole(tokenData.role);
-                    setUserName(tokenData.name);
-                    setSelectedOperator({
-                        id: tokenData.operatorId,
-                        name: tokenData.operatorName
-                    });
-                    setShowLoginModal(false);
-                    
-                    // Удаляем токен из URL
-                    window.history.replaceState({}, document.title, window.location.pathname);
+                    try {
+                        const decodedToken = decodeURIComponent(token);
+                        const tokenData = JSON.parse(safeAtob(decodedToken));
+                        
+                        // Проверяем срок действия токена (5 минут)
+                        if (Date.now() - tokenData.timestamp < 300000) {
+                            setApiKey(tokenData.apiKey);
+                            setUserId(tokenData.userId);
+                            setUserRole(tokenData.role);
+                            setUserName(tokenData.name);
+                            
+                            // Удаляем токен из URL
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                            
+                            // Ждем загрузки операторов перед выбором
+                            const waitForOperators = async () => {
+                                let attempts = 0;
+                                const maxAttempts = 10;
+                                const delay = 100; // 100ms между попытками
+                                
+                                while (attempts < maxAttempts) {
+                                    if (operators.length > 0) {
+                                        const operator = operators.find(op => op.id === tokenData.operatorId);
+                                        if (operator) {
+                                            setSelectedOperator(operator);
+                                            break;
+                                        }
+                                    }
+                                    attempts++;
+                                    await new Promise(resolve => setTimeout(resolve, delay));
+                                }
+                            };
+                            
+                            waitForOperators();
+                            
+                            setShowLoginModal(false);
+                        }
+                    } catch (e) {
+                        console.error('Token decoding error:', e);
                     }
-                } catch (e) {
-                    console.error('Token decoding error:', e);
                 }
-                }
-            }, []);
+            }, [operators]);
 
             useEffect(() => {
                 if (!apiKey || !userId) return;
