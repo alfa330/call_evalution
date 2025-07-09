@@ -29,7 +29,7 @@
 <body class="bg-gray-100">
     <div id="root"></div>
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState, useEffect, useRef } = React;
         const API_BASE_URL = 'https://otp-wif3.onrender.com';
 
         const getAudioUrlWithAuth = async (evaluationId, apiKey, userId) => {
@@ -55,6 +55,48 @@
                 console.error('Audio fetch error:', error);
                 return null;
             }
+        };
+
+        const SemicircleProgress = ({ value, max, label, color }) => {
+            const canvasRef = useRef(null);
+
+            useEffect(() => {
+                const canvas = canvasRef.current;
+                const ctx = canvas.getContext('2d');
+                const centerX = canvas.width / 2;
+                const centerY = canvas.height;
+                const radius = canvas.width / 2 - 10;
+                const startAngle = Math.PI;
+                const progress = value / max;
+                const endAngle = startAngle + (progress * Math.PI);
+
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // Background arc
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, startAngle, startAngle + Math.PI);
+                ctx.lineWidth = 20;
+                ctx.strokeStyle = '#e5e7eb';
+                ctx.stroke();
+
+                // Progress arc
+                ctx.beginPath();
+                ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+                ctx.strokeStyle = color;
+                ctx.stroke();
+
+                // Text
+                ctx.font = '16px Arial';
+                ctx.fillStyle = '#1f2937';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(`${value}/${max}`, centerX, centerY - 20);
+                ctx.fillText(label, centerX, centerY + 20);
+            }, [value, max, label, color]);
+
+            return (
+                <canvas ref={canvasRef} width={150} height={100} className="inline-block" />
+            );
         };
 
         const LoginModal = ({ isOpen, onClose, onLogin }) => {
@@ -518,45 +560,6 @@
             );
         };
 
-        const SemiCircleProgress = ({ percentage }) => {
-            const radius = 50;
-            const stroke = 10;
-            const normalizedRadius = radius - stroke * 2;
-            const circumference = normalizedRadius * Math.PI;
-            const strokeDashoffset = circumference - (percentage / 100) * circumference;
-
-            return (
-                <div className="relative w-32 h-16 overflow-hidden">
-                    <svg height="100" width="100" className="absolute top-0 left-0 transform rotate-180">
-                        <circle
-                            stroke="#e5e7eb"
-                            fill="transparent"
-                            r={normalizedRadius}
-                            cx={radius}
-                            cy={radius}
-                            strokeWidth={stroke}
-                        />
-                        <circle
-                            stroke="#3b82f6"
-                            fill="transparent"
-                            r={normalizedRadius}
-                            cx={radius}
-                            cy={radius}
-                            strokeWidth={stroke}
-                            strokeDasharray={circumference + ' ' + circumference}
-                            style={{ strokeDashoffset }}
-                            className="transition-all duration-500 ease-in-out"
-                        />
-                    </svg>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        <span className="text-sm font-semibold text-gray-800">
-                            {percentage ? percentage.toFixed(2) : 'N/A'}
-                        </span>
-                    </div>
-                </div>
-            );
-        };
-
         const App = () => {
             const [userName, setUserName] = useState(null);
             const [calls, setCalls] = useState([]);
@@ -767,6 +770,12 @@
 
             const callsByMonth = calls.filter(call => call.assignedMonth === selectedMonth);
             const isMaxEvaluationsReached = callsByMonth.filter(c => !c.isDraft).length >= MAX_EVALUATIONS;
+            const evaluationCount = callsByMonth.filter(c => !c.isDraft).length;
+            const averageScore = callsByMonth.length > 0 
+                ? callsByMonth
+                    .filter(c => !c.isDraft)
+                    .reduce((sum, call) => sum + parseFloat(call.totalScore), 0) / evaluationCount || 0
+                : 0;
 
             return (
                 <div className="min-h-screen bg-gray-100 p-6 max-w-[1152px] mx-auto">
@@ -793,7 +802,7 @@
                     <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-semibold text-gray-800">Call Evaluations</h2>
-                            <div className="flex space-x-4 items-center">
+                            <div className="flex space-x-4">
                                 <div>
                                     <label className="mr-2 font-medium">Operator:</label>
                                     <select
@@ -821,19 +830,24 @@
                                         ))}
                                     </select>
                                 </div>
-                                {selectedOperator && (
-                                    <div className="flex items-center space-x-4">
-                                        <div className="text-sm">
-                                            <span className="font-medium">Evaluations:</span> {selectedOperator.call_count}/{MAX_EVALUATIONS}
-                                        </div>
-                                        <div className="text-sm">
-                                            <span className="font-medium">Average Score:</span>
-                                            <SemiCircleProgress percentage={selectedOperator.avg_score} />
-                                        </div>
-                                    </div>
-                                )}
                             </div>
                         </div>
+                        {selectedOperator && (
+                            <div className="flex justify-center space-x-8 mb-6">
+                                <SemicircleProgress
+                                    value={evaluationCount}
+                                    max={MAX_EVALUATIONS}
+                                    label="Evaluations"
+                                    color="#3b82f6"
+                                />
+                                <SemicircleProgress
+                                    value={Math.round(averageScore)}
+                                    max={100}
+                                    label="Avg Score"
+                                    color="#10b981"
+                                />
+                            </div>
+                        )}
                         {callsByMonth.length === 0 ? isLoading ? (
                             <div className="text-center py-4">
                                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
