@@ -255,7 +255,8 @@
                 formData.append('comment', combinedComment);
                 formData.append('month', assignedMonth);
                 formData.append('is_draft', saveAsDraft);
-
+                formData.append('scores', JSON.stringify(scores));
+                formData.append('criterion_comments', JSON.stringify(criterionComments));
                 if (callFile) {
                     formData.append('audio_file', callFile);
                 }
