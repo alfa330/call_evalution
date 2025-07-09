@@ -628,7 +628,7 @@
                             
                             // Удаляем токен из URL
                             window.history.replaceState({}, document.title, window.location.pathname);
-                            
+                            console.log(tokenData.operatorId);
                             // Ждем загрузки операторов перед выбором
                             const waitForOperators = async () => {
                                 let attempts = 0;
