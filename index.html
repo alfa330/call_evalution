@@ -591,6 +591,7 @@
             const [editingEvaluation, setEditingEvaluation] = useState(null);
             const [isLoading, setIsLoading] = useState(false);
             const [loadingCallId, setLoadingCallId] = useState(null);
+            const [operatorFromToken, setOperatorFromToken] = useState(null);
             const MAX_EVALUATIONS = 20;
             
             const getLast12Months = () => {
@@ -610,7 +611,6 @@
             const monthOptions = getLast12Months();
 
             useEffect(() => {
-                // Проверяем токен из URL при загрузке
                 const params = new URLSearchParams(window.location.search);
                 const token = params.get('token');
                 
@@ -619,20 +619,15 @@
                         const decodedToken = decodeURIComponent(token);
                         const tokenData = JSON.parse(safeAtob(decodedToken));
                         
-                        // Проверяем срок действия токена (5 минут)
                         if (Date.now() - tokenData.timestamp < 300000) {
                             setApiKey(tokenData.apiKey);
                             setUserId(tokenData.userId);
                             setUserRole(tokenData.role);
                             setUserName(tokenData.name);
-                            
-                            // Сохраняем данные оператора из токена в состоянии
-                            setSelectedOperator({
+                            setOperatorFromToken({
                                 id: tokenData.operatorId,
                                 name: tokenData.operatorName
                             });
-                            
-                            // Удаляем токен из URL
                             window.history.replaceState({}, document.title, window.location.pathname);
                             setShowLoginModal(false);
                         }
@@ -640,18 +635,21 @@
                         console.error('Token decoding error:', e);
                     }
                 }
-            }, []); // Убираем зависимость от operators
+            }, []);
             
             // Новый эффект для выбора оператора после загрузки
             useEffect(() => {
-                if (selectedOperator?.id && operators.length > 0) {
-                    // Ищем оператора по ID из токена
-                    const operatorFromToken = operators.find(op => op.id === selectedOperator.id);
-                    if (operatorFromToken) {
-                        setSelectedOperator(operatorFromToken);
+                if (operatorFromToken && operators.length > 0) {
+                    const foundOperator = operators.find(op => op.id === operatorFromToken.id);
+                    if (foundOperator) {
+                        setSelectedOperator(foundOperator);
+                    } else {
+                        console.warn(`Operator with ID ${operatorFromToken.id} not found`);
+                        setSelectedOperator(null);
                     }
+                    setOperatorFromToken(null); // Очищаем временное значение
                 }
-            }, [operators, selectedOperator?.id]);
+            }, [operators, operatorFromToken]);
 
             useEffect(() => {
                 if (!apiKey || !userId) return;
