@@ -518,6 +518,45 @@
             );
         };
 
+        const SemiCircleProgress = ({ percentage }) => {
+            const radius = 50;
+            const stroke = 10;
+            const normalizedRadius = radius - stroke * 2;
+            const circumference = normalizedRadius * Math.PI;
+            const strokeDashoffset = circumference - (percentage / 100) * circumference;
+
+            return (
+                <div className="relative w-32 h-16 overflow-hidden">
+                    <svg height="100" width="100" className="absolute top-0 left-0 transform rotate-180">
+                        <circle
+                            stroke="#e5e7eb"
+                            fill="transparent"
+                            r={normalizedRadius}
+                            cx={radius}
+                            cy={radius}
+                            strokeWidth={stroke}
+                        />
+                        <circle
+                            stroke="#3b82f6"
+                            fill="transparent"
+                            r={normalizedRadius}
+                            cx={radius}
+                            cy={radius}
+                            strokeWidth={stroke}
+                            strokeDasharray={circumference + ' ' + circumference}
+                            style={{ strokeDashoffset }}
+                            className="transition-all duration-500 ease-in-out"
+                        />
+                    </svg>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="text-sm font-semibold text-gray-800">
+                            {percentage ? percentage.toFixed(2) : 'N/A'}
+                        </span>
+                    </div>
+                </div>
+            );
+        };
+
         const App = () => {
             const [userName, setUserName] = useState(null);
             const [calls, setCalls] = useState([]);
@@ -732,7 +771,7 @@
             return (
                 <div className="min-h-screen bg-gray-100 p-6 max-w-[1152px] mx-auto">
                     <div className="flex justify-between items-center mb-6">
-                        <h1 className="text-3xl font-bold">Supervisor Call earthly Evaluation</h1>
+                        <h1 className="text-3xl font-bold">Supervisor Call Evaluation</h1>
                         <div className="flex space-x-2">
                             {userRole === 'admin' && (
                                 <button
@@ -754,7 +793,7 @@
                     <div className="bg-white p-8 rounded-xl shadow-lg border border-gray-200">
                         <div className="flex justify-between items-center mb-6">
                             <h2 className="text-2xl font-semibold text-gray-800">Call Evaluations</h2>
-                            <div className="flex space-x-4">
+                            <div className="flex space-x-4 items-center">
                                 <div>
                                     <label className="mr-2 font-medium">Operator:</label>
                                     <select
@@ -782,6 +821,17 @@
                                         ))}
                                     </select>
                                 </div>
+                                {selectedOperator && (
+                                    <div className="flex items-center space-x-4">
+                                        <div className="text-sm">
+                                            <span className="font-medium">Evaluations:</span> {selectedOperator.call_count}/{MAX_EVALUATIONS}
+                                        </div>
+                                        <div className="text-sm">
+                                            <span className="font-medium">Average Score:</span>
+                                            <SemiCircleProgress percentage={selectedOperator.avg_score} />
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                         {callsByMonth.length === 0 ? isLoading ? (
