@@ -715,7 +715,6 @@
                         const data = await response.json();
                         if (data.status === 'success') {
                             // Загружаем аудио только для первых нескольких элементов для оптимизации
-                            const limitedEvaluations = data.evaluations.slice(0, 20);
                             const updatedCalls = await Promise.all(limitedEvaluations.map(async (evaluation) => {
                                 let audioUrl = null;
                                 return {
