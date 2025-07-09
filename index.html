@@ -31,8 +31,12 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
         const API_BASE_URL = 'https://otp-wif3.onrender.com';
-
+        const audioUrlCache = {};
         const getAudioUrlWithAuth = async (evaluationId, apiKey, userId) => {
+            if (audioUrlCache[evaluationId]) {
+                return audioUrlCache[evaluationId];
+            }
+        
             try {
                 const response = await fetch(`${API_BASE_URL}/api/audio/${evaluationId}`, {
                     method: 'GET',
@@ -46,6 +50,7 @@
         
                 const data = await response.json();
                 if (data && data.url) {
+                    audioUrlCache[evaluationId] = data.url;
                     return data.url;
                 } else {
                     console.error("No signed URL returned in response:", data);
@@ -598,72 +603,105 @@
             const monthOptions = getLast12Months();
 
             useEffect(() => {
-                const fetchData = async () => {
-                    if (!apiKey || !userId) return;
-                    setIsLoading(true);
+                if (!apiKey || !userId) return;
+                
+                const fetchDirections = async () => {
                     try {
-                        const directionsResponse = await fetch(`${API_BASE_URL}/api/admin/directions`, {
+                        const response = await fetch(`${API_BASE_URL}/api/admin/directions`, {
                             headers: {
                                 'X-API-Key': apiKey,
                                 'X-User-Id': userId
                             }
                         });
-                        const directionsData = await directionsResponse.json();
-                        if (directionsData.status === 'success') {
-                            setDirections(directionsData.directions);
-                        }
-
-                        const operatorsResponse = await fetch(`${API_BASE_URL}/api/sv/data?id=${userId}`, {
-                            headers: {
-                                'X-API-Key': apiKey,
-                                'X-User-Id': userId
-                            }
-                        });
-                        const operatorsData = await operatorsResponse.json();
-                        if (operatorsData.status === 'success') {
-                            setOperators(operatorsData.operators);
-                        }
-
-                        if (selectedOperator) {
-                            const evaluationsResponse = await fetch(`${API_BASE_URL}/api/call_evaluations?operator_id=${selectedOperator.id}`, {
-                                headers: {
-                                    'X-API-Key': apiKey,
-                                    'X-User-Id': userId
-                                }
-                            });
-                            const evaluationsData = await evaluationsResponse.json();
-                            if (evaluationsData.status === 'success') {
-                                const updatedCalls = await Promise.all(evaluationsData.evaluations.map(async (evaluation) => {
-                                    let audioUrl = null;
-                                    return {
-                                        id: evaluation.id,
-                                        fileName: `Call ${evaluation.phone_number}`,
-                                        totalScore: evaluation.score.toFixed(2),
-                                        date: evaluation.evaluation_date,
-                                        phoneNumber: evaluation.phone_number,
-                                        combinedComment: evaluation.comment,
-                                        selectedDirection: selectedOperator.direction,
-                                        directions: directionsData.directions.filter(d => d.name === selectedOperator.direction),
-                                        scores: evaluation.scores || [],
-                                        criterionComments: evaluation.criterion_comments || [],
-                                        audioUrl,
-                                        isDraft: evaluation.is_draft,
-                                        assignedMonth: evaluation.month
-                                    };
-                                }));
-                                setCalls(updatedCalls);
-                            }
-                        } else {
-                            setCalls([]);
+                        const data = await response.json();
+                        if (data.status === 'success') {
+                            setDirections(data.directions);
                         }
                     } catch (err) {
-                        console.error('Error fetching data:', err);
+                        console.error('Error fetching directions:', err);
+                    }
+                };
+        
+                const fetchOperators = async () => {
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/api/sv/data?id=${userId}`, {
+                            headers: {
+                                'X-API-Key': apiKey,
+                                'X-User-Id': userId
+                            }
+                        });
+                        const data = await response.json();
+                        if (data.status === 'success') {
+                            setOperators(data.operators);
+                        }
+                    } catch (err) {
+                        console.error('Error fetching operators:', err);
+                    }
+                };
+        
+                // Выполняем оба запроса параллельно
+                Promise.all([fetchDirections(), fetchOperators()])
+                    .finally(() => setIsLoading(false));
+            }, [apiKey, userId]);
+        
+            useEffect(() => {
+                if (!apiKey || !userId || !selectedOperator) {
+                    setCalls([]);
+                    return;
+                }
+        
+                const controller = new AbortController();
+                const signal = controller.signal;
+        
+                const fetchEvaluations = async () => {
+                    setIsLoading(true);
+                    try {
+                        const response = await fetch(`${API_BASE_URL}/api/call_evaluations?operator_id=${selectedOperator.id}`, {
+                            headers: {
+                                'X-API-Key': apiKey,
+                                'X-User-Id': userId
+                            },
+                            signal
+                        });
+                        const data = await response.json();
+                        if (data.status === 'success') {
+                            // Загружаем аудио только для первых нескольких элементов для оптимизации
+                            const limitedEvaluations = data.evaluations.slice(0, 20);
+                            const updatedCalls = await Promise.all(limitedEvaluations.map(async (evaluation) => {
+                                let audioUrl = null;
+                                return {
+                                    id: evaluation.id,
+                                    fileName: `Call ${evaluation.phone_number}`,
+                                    totalScore: evaluation.score.toFixed(2),
+                                    date: evaluation.evaluation_date,
+                                    phoneNumber: evaluation.phone_number,
+                                    combinedComment: evaluation.comment,
+                                    selectedDirection: selectedOperator.direction,
+                                    directions: directions.filter(d => d.name === selectedOperator.direction),
+                                    scores: evaluation.scores || [],
+                                    criterionComments: evaluation.criterion_comments || [],
+                                    audioUrl,
+                                    isDraft: evaluation.is_draft,
+                                    assignedMonth: evaluation.month
+                                };
+                            }));
+                            setCalls(updatedCalls);
+                        }
+                    } catch (err) {
+                        if (err.name !== 'AbortError') {
+                            console.error('Error fetching evaluations:', err);
+                        }
                     } finally {
                         setIsLoading(false);
                     }
                 };
-                fetchData();
-            }, [apiKey, userId, selectedOperator]);
+        
+                fetchEvaluations();
+        
+                return () => {
+                    controller.abort();
+                };
+            }, [apiKey, userId, selectedOperator, directions]);
 
             const handleLogin = (key, id, role, name) => {
                 setApiKey(key);
