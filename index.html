@@ -633,7 +633,7 @@
                             const waitForOperators = async () => {
                                 let attempts = 0;
                                 const maxAttempts = 10;
-                                const delay = 100; // 100ms между попытками
+                                const delay = 1000; // 100ms между попытками
                                 
                                 while (attempts < maxAttempts) {
                                     if (operators.length > 0) {
