@@ -110,6 +110,48 @@
             const [login, setLogin] = useState('');
             const [password, setPassword] = useState('');
             const [error, setError] = useState('');
+            const [isCheckingToken, setIsCheckingToken] = useState(true);
+
+            useEffect(() => {
+                // Проверяем токен при монтировании компонента
+                const checkAuthToken = async () => {
+                    const token = sessionStorage.getItem('callEvalAuth');
+                    if (token) {
+                        try {
+                            const tokenData = JSON.parse(atob(token));
+                            
+                            // Проверяем срок действия токена (5 минут)
+                            if (Date.now() - tokenData.timestamp < 300000) {
+                                // Автоматически логиним пользователя
+                                onLogin(tokenData.apiKey, tokenData.userId, 'sv', 'Supervisor');
+                                
+                                // Если есть данные оператора, передаем их
+                                if (tokenData.operatorId) {
+                                    // Можно сохранить в контекст или передать выше
+                                    console.log('Operator data:', {
+                                        id: tokenData.operatorId,
+                                        name: tokenData.operatorName
+                                    });
+                                }
+                                
+                                // Удаляем токен после использования
+                                sessionStorage.removeItem('callEvalAuth');
+                                onClose();
+                                return;
+                            }
+                        } catch (e) {
+                            console.error('Token decoding error:', e);
+                        } finally {
+                            setIsCheckingToken(false);
+                        }
+                    }
+                    setIsCheckingToken(false);
+                };
+
+                if (isOpen) {
+                    checkAuthToken();
+                }
+            }, [isOpen, onLogin, onClose]);
 
             const handleSubmit = async (e) => {
                 e.preventDefault();
@@ -133,6 +175,19 @@
             };
 
             if (!isOpen) return null;
+
+            if (isCheckingToken) {
+                return (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                        <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-md text-center">
+                            <h2 className="text-xl font-semibold mb-4">Checking authorization...</h2>
+                            <div className="flex justify-center">
+                                <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                            </div>
+                        </div>
+                    </div>
+                );
+            }
 
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
