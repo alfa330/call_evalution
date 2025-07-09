@@ -637,6 +637,7 @@
                                 
                                 while (attempts < maxAttempts) {
                                     if (operators.length > 0) {
+                                        console.log(operators);
                                         const operator = operators.find(op => op.id === tokenData.operatorId);
                                         if (operator) {
                                             setSelectedOperator(operator);
@@ -644,7 +645,7 @@
                                         }
                                     }
                                     attempts++;
-                                    console.log(attempts)
+                                    console.log(attempts);
                                     await new Promise(resolve => setTimeout(resolve, delay));
                                 }
                             };
