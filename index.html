@@ -698,10 +698,10 @@
                     setCalls([]);
                     return;
                 }
-        
+
                 const controller = new AbortController();
                 const signal = controller.signal;
-        
+
                 const fetchEvaluations = async () => {
                     setIsLoading(true);
                     try {
@@ -714,7 +714,6 @@
                         });
                         const data = await response.json();
                         if (data.status === 'success') {
-                            // Загружаем аудио только для первых нескольких элементов для оптимизации
                             const updatedCalls = await Promise.all(data.evaluations.map(async (evaluation) => {
                                 let audioUrl = null;
                                 return {
@@ -724,13 +723,19 @@
                                     date: evaluation.evaluation_date,
                                     phoneNumber: evaluation.phone_number,
                                     combinedComment: evaluation.comment,
-                                    selectedDirection: selectedOperator.direction,
-                                    directions: directions.filter(d => d.name === selectedOperator.direction),
+                                    selectedDirection: evaluation.direction?.name || selectedOperator.direction,
+                                    directions: [{
+                                        name: evaluation.direction?.name || selectedOperator.direction,
+                                        hasFileUpload: evaluation.direction?.hasFileUpload || true,
+                                        criteria: evaluation.direction?.criteria || [],
+                                        version: evaluation.direction?.version || 1
+                                    }],
                                     scores: evaluation.scores || [],
                                     criterionComments: evaluation.criterion_comments || [],
                                     audioUrl,
                                     isDraft: evaluation.is_draft,
-                                    assignedMonth: evaluation.month
+                                    assignedMonth: evaluation.month,
+                                    directionVersion: evaluation.direction?.version || 1 // Добавлено
                                 };
                             }));
                             setCalls(updatedCalls);
@@ -743,9 +748,9 @@
                         setIsLoading(false);
                     }
                 };
-        
+
                 fetchEvaluations();
-        
+
                 return () => {
                     controller.abort();
                 };
@@ -777,12 +782,14 @@
                         selectedDirection: evaluationData.selectedDirection,
                         directions: evaluationData.directions,
                         phoneNumber: evaluationData.phoneNumber,
-                        assignedMonth: evaluationData.assignedMonth
+                        assignedMonth: evaluationData.assignedMonth,
+                        directionVersion: evaluationData.directionVersion // Добавлено
                     };
                     return [...prevCalls.filter(c => c.id !== newCall.id), newCall];
                 });
                 setEditingEvaluation(null);
             };
+
 
             const handleSelectCall = async (callId) => {
                 const call = calls.find(c => c.id === callId);
