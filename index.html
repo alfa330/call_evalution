@@ -313,6 +313,7 @@
                 formData.append('is_draft', saveAsDraft);
                 formData.append('scores', JSON.stringify(scores));
                 formData.append('criterion_comments', JSON.stringify(criterionComments));
+                formData.append('direction', operator.direction_id);
                 if (callFile) {
                     formData.append('audio_file', callFile);
                 }
