@@ -650,6 +650,9 @@
                                 id: tokenData.operatorId,
                                 name: tokenData.operatorName
                             });
+                            if (tokenData.supervisorId) {
+                                setSelectedSupervisor(tokenData.supervisorId);
+                            }
                             window.history.replaceState({}, document.title, window.location.pathname);
                             setShowLoginModal(false);
                         }
