@@ -346,7 +346,7 @@
                             }],
                             scores,
                             criterionComments,
-                            audioUrl: directions[0]?.hasFileUpload ? audioUrl || existingEvaluation?.audioUrl : null,
+                            audioUrl: directions[0]?.hasFileUpload ? audioUrl : null,
                             isDraft: saveAsDraft,
                             assignedMonth,
                             isCorrection: existingEvaluation?.isReevaluation || false
@@ -817,11 +817,6 @@
                         assignedMonth: evaluationData.assignedMonth,
                         direction_id: selectedOperator.direction_id
                     };
-                    if (evaluationData.isCorrection) {
-                        return prevCalls.map(c => 
-                            c.id === editingEvaluation?.id ? { ...newCall, isCorrection: true } : c
-                        ).filter(c => !c.isCorrection || c.id === newCall.id);
-                    }
                     return [...prevCalls.filter(c => c.id !== newCall.id), newCall];
                 });
                 setEditingEvaluation(null);
@@ -1012,7 +1007,7 @@
                                                     <td className="p-4 border-b text-sm">{call.selectedDirection || '-'}</td>
                                                     <td className="p-4 border-b text-sm">{call.phoneNumber || '-'}</td>
                                                     <td className="p-4 border-b text-sm">{call.totalScore}</td>
-                                                    <td className="p-4 border-b text-sm flex items-center space-x-4">
+                                                    <td className="p-4 border-b text-sm flex items-center space-x-2">
                                                         {call.date}
                                                         {userRole === 'admin' && !call.isDraft && (
                                                             <>
@@ -1151,6 +1146,7 @@
                         userName={userName}
                         existingEvaluation={editingEvaluation}
                     />
+                    {/* Модальное окно для отображения версий */}
                     {showVersionsModal && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                             <div className="bg-white p-6 rounded-lg shadow-lg w-full max-w-3xl max-h-[90vh] overflow-y-auto">
