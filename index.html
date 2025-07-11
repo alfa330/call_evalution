@@ -813,29 +813,113 @@
             };
 
             const handleEvaluateCall = (evaluationData) => {
-                setCalls(prevCalls => {
-                    if (!evaluationData) {
-                        return prevCalls.filter(c => c.id !== editingEvaluation?.id);
-                    }
-                    const newCall = {
-                        id: evaluationData.id,
-                        fileName: `Call ${evaluationData.phoneNumber}`,
-                        scores: evaluationData.scores,
-                        criterionComments: evaluationData.criterionComments,
-                        combinedComment: evaluationData.comment,
-                        totalScore: evaluationData.totalScore,
-                        date: new Date().toLocaleDateString(),
-                        audioUrl: evaluationData.audioUrl,
-                        isDraft: evaluationData.isDraft,
-                        selectedDirection: evaluationData.selectedDirection,
-                        directions: evaluationData.directions,
-                        phoneNumber: evaluationData.phoneNumber,
-                        assignedMonth: evaluationData.assignedMonth,
-                        direction_id: selectedOperator.direction_id
+            setCalls((prevCalls) => {
+                if (!evaluationData) {
+                // Удаление черновика
+                return prevCalls.filter((c) => c.id !== editingEvaluation?.id);
+                }
+
+                const newCall = {
+                id: evaluationData.id,
+                fileName: `Call ${evaluationData.phoneNumber}`,
+                scores: evaluationData.scores,
+                criterionComments: evaluationData.criterionComments,
+                combinedComment: evaluationData.comment,
+                totalScore: evaluationData.totalScore,
+                date: new Date().toLocaleDateString(),
+                audioUrl: evaluationData.audioUrl,
+                isDraft: evaluationData.isDraft,
+                selectedDirection: evaluationData.selectedDirection,
+                directions: evaluationData.directions,
+                phoneNumber: evaluationData.phoneNumber,
+                assignedMonth: evaluationData.assignedMonth,
+                direction_id: selectedOperator.direction_id,
+                isCorrection: evaluationData.isCorrection,
+                };
+
+                // Если это переоценка, удаляем старую версию с тем же ID или связанную через previous_version_id
+                let updatedCalls = prevCalls;
+                if (evaluationData.isCorrection) {
+                updatedCalls = prevCalls.filter(
+                    (call) =>
+                    call.id !== evaluationData.id &&
+                    call.id !== evaluationData.previous_version_id // Предполагается, что previous_version_id доступен в evaluationData
+                );
+                } else {
+                updatedCalls = prevCalls.filter((c) => c.id !== newCall.id);
+                }
+
+                return [...updatedCalls, newCall];
+            });
+
+            // Очищаем кэш аудио для этой оценки, если это переоценка
+            if (evaluationData.isCorrection && evaluationData.id) {
+                delete audioUrlCache[evaluationData.id];
+                if (evaluationData.previous_version_id) {
+                delete audioUrlCache[evaluationData.previous_version_id];
+                }
+            }
+
+            setEditingEvaluation(null);
+
+            // Перезагружаем оценки с бэкенда для синхронизации
+            if (!evaluationData.isDraft) {
+                fetchEvaluations();
+            }
+            };
+
+            // Функция для перезагрузки оценок
+            const fetchEvaluations = async () => {
+            setIsLoading(true);
+            try {
+                const response = await fetch(
+                `${API_BASE_URL}/api/call_evaluations?operator_id=${selectedOperator.id}`,
+                {
+                    headers: {
+                    'X-API-Key': apiKey,
+                    'X-User-Id': userId,
+                    },
+                }
+                );
+                const data = await response.json();
+                if (data.status === 'success') {
+                const updatedCalls = await Promise.all(
+                    data.evaluations.map(async (evaluation) => {
+                    let audioUrl = null;
+                    return {
+                        id: evaluation.id,
+                        fileName: `Call ${evaluation.phone_number}`,
+                        totalScore: evaluation.score.toFixed(2),
+                        date: evaluation.evaluation_date,
+                        phoneNumber: evaluation.phone_number,
+                        combinedComment: evaluation.comment,
+                        selectedDirection:
+                        evaluation.direction?.name || selectedOperator.direction,
+                        directions: [
+                        {
+                            name: evaluation.direction?.name || selectedOperator.direction,
+                            hasFileUpload: evaluation.direction?.hasFileUpload || true,
+                            criteria: evaluation.direction?.criteria || [],
+                        },
+                        ],
+                        scores: evaluation.scores || [],
+                        criterionComments: evaluation.criterion_comments || [],
+                        audioUrl,
+                        isDraft: evaluation.is_draft,
+                        assignedMonth: evaluation.month,
+                        isCorrection: evaluation.is_correction || false,
                     };
-                    return [...prevCalls.filter(c => c.id !== newCall.id), newCall];
-                });
-                setEditingEvaluation(null);
+                    })
+                );
+                setCalls(updatedCalls);
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                console.error('Error fetching evaluations:', err);
+                }
+            } finally {
+                setIsLoading(false);
+            }
             };
 
             const handleSelectCall = async (callId) => {
