@@ -627,6 +627,7 @@
             const [versionHistory, setVersionHistory] = useState([]);
             const [fromDate, setFromDate] = useState(null);
             const [toDate, setToDate] = useState(null);
+            const [viewMode, setViewMode] = useState('normal');
             const MAX_EVALUATIONS = 20;
 
             const getLast12Months = () => {
@@ -1002,13 +1003,18 @@
             const monthEnd = `${selectedMonth}-${lastDay.toString().padStart(2,'0')}`;
 
             const callsByMonth = calls.filter(call => call.assignedMonth === selectedMonth);
-            const displayedCalls = callsByMonth.filter(call => (!fromDate || call.date >= fromDate) && (!toDate || call.date <= toDate));
+            let displayedCalls = callsByMonth;
+            if (viewMode === 'normal') {
+                displayedCalls = displayedCalls.filter(call => (!fromDate || call.date >= fromDate) && (!toDate || call.date <= toDate));
+            } else {
+                displayedCalls = displayedCalls.filter(call => call.date.slice(0,7) !== selectedMonth);
+            }
             const isMaxEvaluationsReached = callsByMonth.filter(c => !c.isDraft).length >= MAX_EVALUATIONS;
             const evaluationCount = displayedCalls.filter(c => !c.isDraft).length;
-            const averageScore = displayedCalls.length > 0 
+            const averageScore = evaluationCount > 0 
                 ? displayedCalls
                     .filter(c => !c.isDraft)
-                    .reduce((sum, call) => sum + parseFloat(call.totalScore), 0) / evaluationCount || 0
+                    .reduce((sum, call) => sum + parseFloat(call.totalScore), 0) / evaluationCount
                 : 0;
 
             return (
@@ -1031,7 +1037,7 @@
                     <main className="bg-card p-10 rounded-xl shadow-card border border-primary/10">
                         <div className="flex justify-between items-center mb-10">
                             <h2 className="text-3xl font-bold text-text">Call Evaluations Overview</h2>
-                            <div className="flex space-x-6 items-center">
+                            <div className="flex flex-wrap items-center gap-4">
                                 {userRole === 'admin' && (
                                     <div className="flex items-center space-x-3">
                                         <label className="font-semibold text-text text-lg">Supervisor:</label>
@@ -1285,19 +1291,31 @@
                         <div className="mt-8 flex justify-between items-center">
                             {selectedOperator && (
                                 <p className="text-base text-muted">
-                                    Showing {displayedCalls.length} evaluations for {selectedOperator.name} in {monthOptions.find(m => m.value === selectedMonth)?.label || selectedMonth}
+                                    Showing {displayedCalls.length} {viewMode === 'extra' ? 'extra ' : ''}evaluations for {selectedOperator.name} in {monthOptions.find(m => m.value === selectedMonth)?.label || selectedMonth}
                                 </p>
                             )}
-                            <button
-                                onClick={() => {
-                                    setEditingEvaluation(null);
-                                    setShowEvaluationModal(true);
-                                }}
-                                className={`bg-secondary text-white px-6 py-3 rounded-full hover:bg-secondary/90 text-base font-bold transition-all duration-300 ${!selectedOperator || isMaxEvaluationsReached ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                disabled={!selectedOperator || isMaxEvaluationsReached}
-                            >
-                                + Add New Evaluation
-                            </button>
+                            <div className="flex items-center space-x-4">
+                                {userRole === 'admin' && (
+                                    <button
+                                        onClick={() => setViewMode(viewMode === 'normal' ? 'extra' : 'normal')}
+                                        className="bg-accent text-white px-6 py-3 rounded-full hover:bg-accent/90 text-base font-bold transition-all duration-300"
+                                    >
+                                        Show {viewMode === 'normal' ? 'Extra' : 'Normal'}
+                                    </button>
+                                )}
+                                {viewMode === 'normal' && (
+                                    <button
+                                        onClick={() => {
+                                            setEditingEvaluation(null);
+                                            setShowEvaluationModal(true);
+                                        }}
+                                        className={`bg-secondary text-white px-6 py-3 rounded-full hover:bg-secondary/90 text-base font-bold transition-all duration-300 ${!selectedOperator || isMaxEvaluationsReached ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        disabled={!selectedOperator || isMaxEvaluationsReached}
+                                    >
+                                        + Add New Evaluation
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </main>
 
