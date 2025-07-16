@@ -742,9 +742,13 @@
             let endDate = '';
             let diffDays = 0;
             if (isValidRange) {
-                console.log('Selected date range:', selectedDates);
-                startDate = selectedDates[0].toISOString().split('T')[0];
-                endDate = selectedDates[1].toISOString().split('T')[0];
+                const start = selectedDates[0];
+                const end = selectedDates[1];
+                // Make end date inclusive by adding 1 day minus 1 ms
+                end.setDate(end.getDate() + 1);
+                end.setMilliseconds(end.getMilliseconds() - 1);
+                startDate = start.toISOString();
+                endDate = end.toISOString();
                 rangeText = `From ${startDate} to ${endDate}`;
                 // Make diffDays inclusive
                 const diffTime = selectedDates[1] - selectedDates[0];
