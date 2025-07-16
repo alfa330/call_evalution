@@ -742,6 +742,7 @@
             let endDate = '';
             let diffDays = 0;
             if (isValidRange) {
+                console.log('Selected date range:', selectedDates);
                 startDate = selectedDates[0].toISOString().split('T')[0];
                 endDate = selectedDates[1].toISOString().split('T')[0];
                 rangeText = `From ${startDate} to ${endDate}`;
