@@ -718,8 +718,13 @@
                         onChange: function(dates) {
                             setSelectedDates(dates);
                             if (dates.length === 2) {
-                                setFromDate(dates[0].toISOString().split('T')[0]);
-                                setToDate(dates[1].toISOString().split('T')[0]);
+                                // Make end date inclusive by adding 1 day minus 1 ms
+                                const start = new Date(dates[0]);
+                                const end = new Date(dates[1]);
+                                // SetFromDate as start date
+                                setFromDate(start.toISOString().split('T')[0]);
+                                // SetToDate as end date (inclusive)
+                                setToDate(end.toISOString().split('T')[0]);
                             } else {
                                 setFromDate(null);
                                 setToDate(null);
@@ -740,9 +745,10 @@
                 startDate = selectedDates[0].toISOString().split('T')[0];
                 endDate = selectedDates[1].toISOString().split('T')[0];
                 rangeText = `From ${startDate} to ${endDate}`;
+                // Make diffDays inclusive
                 const diffTime = selectedDates[1] - selectedDates[0];
-                diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
-                const maxDiffDays = Math.ceil((new Date(maxDate) - new Date(minDate)) / (1000 * 60 * 60 * 24)) + 1;
+                diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                const maxDiffDays = Math.floor((new Date(maxDate) - new Date(minDate)) / (1000 * 60 * 60 * 24)) + 1;
                 rangePercentage = Math.min((diffDays / maxDiffDays) * 100, 100);
             }
         
