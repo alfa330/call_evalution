@@ -707,7 +707,7 @@
         const DateRangePicker = ({ minDate, maxDate, setFromDate, setToDate }) => {
             const [selectedDates, setSelectedDates] = React.useState([]);
             const inputRef = React.useRef(null);
-        
+
             React.useEffect(() => {
                 if (inputRef.current) {
                     flatpickr(inputRef.current, {
@@ -718,13 +718,13 @@
                         onChange: function(dates) {
                             setSelectedDates(dates);
                             if (dates.length === 2) {
-                                // Make end date inclusive by adding 1 day minus 1 ms
                                 const start = new Date(dates[0]);
                                 const end = new Date(dates[1]);
-                                // SetFromDate as start date
-                                setFromDate(start.toISOString().split('T')[0]);
-                                // SetToDate as end date (inclusive)
-                                setToDate(end.toISOString().split('T')[0]);
+                                // Make end date inclusive by adding 1 day minus 1 ms
+                                end.setDate(end.getDate() + 1);
+                                end.setMilliseconds(end.getMilliseconds() - 1);
+                                setFromDate(start.toISOString());
+                                setToDate(end.toISOString());
                             } else {
                                 setFromDate(null);
                                 setToDate(null);
@@ -733,9 +733,9 @@
                     });
                 }
             }, [minDate, maxDate]);
-        
+
             const isValidRange = selectedDates.length === 2;
-        
+
             let rangeText = 'Select date range';
             let rangePercentage = 0;
             let startDate = '';
@@ -751,7 +751,7 @@
                 const maxDiffDays = Math.floor((new Date(maxDate) - new Date(minDate)) / (1000 * 60 * 60 * 24)) + 1;
                 rangePercentage = Math.min((diffDays / maxDiffDays) * 100, 100);
             }
-        
+
             return (
                 <div className="flex flex-col space-y-2">
                     <label className="font-semibold text-text text-lg">Date Range:</label>
