@@ -48,6 +48,106 @@
             }
         };
     </script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/material_green.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        .date-input {
+            margin-bottom: 30px;
+            position: relative;
+        }
+        .date-input input {
+            padding: 14px 45px 14px 14px;
+            width: 100%;
+            max-width: 300px;
+            border: none;
+            border-radius: 8px;
+            background-color: #f0f4f8;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            font-size: 16px;
+            cursor: pointer;
+            transition: box-shadow 0.3s ease;
+        }
+        .date-input input:focus {
+            box-shadow: 0 0 0 2px #27ae60;
+            outline: none;
+        }
+        .date-input::after {
+            content: '\1F4C5'; /* Calendar emoji as icon */
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 22px;
+            color: #27ae60;
+            pointer-events: none;
+        }
+        .selected-range {
+            margin-top: 25px;
+            padding: 14px;
+            background-color: #e8f5e9;
+            border: 1px solid #2e7d32;
+            border-radius: 8px;
+            font-weight: 500;
+            color: #1b5e20;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+        .range-visual {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .range-bar {
+            width: 450px;
+            height: 35px;
+            background-color: #e0e0e0;
+            position: relative;
+            border-radius: 18px;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .range-fill {
+            height: 100%;
+            background: linear-gradient(to right, #27ae60, #2ecc71, #27ae60);
+            border-radius: 18px;
+            transition: width 0.6s ease-in-out;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        }
+        .range-labels {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #555;
+            font-weight: 500;
+        }
+        @media (max-width: 480px) {
+            .range-bar {
+                width: 100%;
+            }
+            .date-input input {
+                max-width: 100%;
+            }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .selected-range, .range-visual, .range-labels {
+            animation: fadeIn 0.5s ease forwards;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 </head>
 <body class="bg-background min-h-screen font-sans antialiased">
     <div id="root"></div>
@@ -604,6 +704,83 @@
             </tr>
         );
 
+        const DateRangePicker = ({ minDate, maxDate, setFromDate, setToDate }) => {
+            const [selectedDates, setSelectedDates] = React.useState([]);
+            const inputRef = React.useRef(null);
+        
+            React.useEffect(() => {
+                if (inputRef.current) {
+                    flatpickr(inputRef.current, {
+                        mode: "range",
+                        dateFormat: "Y-m-d",
+                        minDate,
+                        maxDate,
+                        onChange: function(dates) {
+                            setSelectedDates(dates);
+                            if (dates.length === 2) {
+                                setFromDate(dates[0].toISOString().split('T')[0]);
+                                setToDate(dates[1].toISOString().split('T')[0]);
+                            } else {
+                                setFromDate(null);
+                                setToDate(null);
+                            }
+                        }
+                    });
+                }
+            }, [minDate, maxDate]);
+        
+            const isValidRange = selectedDates.length === 2;
+        
+            let rangeText = 'Select date range';
+            let rangePercentage = 0;
+            let startDate = '';
+            let endDate = '';
+            let diffDays = 0;
+            if (isValidRange) {
+                startDate = selectedDates[0].toISOString().split('T')[0];
+                endDate = selectedDates[1].toISOString().split('T')[0];
+                rangeText = `From ${startDate} to ${endDate}`;
+                const diffTime = selectedDates[1] - selectedDates[0];
+                diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                const maxDiffDays = Math.ceil((new Date(maxDate) - new Date(minDate)) / (1000 * 60 * 60 * 24)) + 1;
+                rangePercentage = Math.min((diffDays / maxDiffDays) * 100, 100);
+            }
+        
+            return (
+                <div className="flex flex-col space-y-2">
+                    <label className="font-semibold text-text text-lg">Date Range:</label>
+                    <div className="date-input">
+                        <input 
+                            ref={inputRef}
+                            type="text" 
+                            placeholder="Select period" 
+                            readOnly={true}
+                        />
+                    </div>
+                    {isValidRange && (
+                        <div className="selected-range">
+                            Selected range: {rangeText}
+                        </div>
+                    )}
+                    {isValidRange && (
+                        <div className="range-visual">
+                            <div className="range-bar">
+                                <div className="range-fill" style={{ width: `${rangePercentage}%` }}>
+                                    {diffDays} days
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    {isValidRange && (
+                        <div className="range-labels">
+                            <span>{startDate}</span>
+                            <span>{endDate}</span>
+                        </div>
+                    )}
+                </div>
+            );
+        };
+
         const App = () => {
             const [userName, setUserName] = useState(null);
             const [calls, setCalls] = useState([]);
@@ -1089,30 +1266,7 @@
                                     </select>
                                 </div>
                                 {userRole === 'admin' && (
-                                    <>
-                                        <div className="flex flex-col space-y-2">
-                                            <label className="font-semibold text-text text-lg">From:</label>
-                                            <input
-                                                type="date"
-                                                value={fromDate || ''}
-                                                onChange={(e) => setFromDate(e.target.value)}
-                                                min={monthStart}
-                                                max={monthEnd}
-                                                className="p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text min-w-[150px]"
-                                            />
-                                        </div>
-                                        <div className="flex flex-col space-y-2">
-                                            <label className="font-semibold text-text text-lg">To:</label>
-                                            <input
-                                                type="date"
-                                                value={toDate || ''}
-                                                onChange={(e) => setToDate(e.target.value)}
-                                                min={monthStart}
-                                                max={monthEnd}
-                                                className="p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text min-w-[150px]"
-                                            />
-                                        </div>
-                                    </>
+                                    <DateRangePicker minDate={monthStart} maxDate={monthEnd} setFromDate={setFromDate} setToDate={setToDate} />
                                 )}
                             </div>
                         </div>
