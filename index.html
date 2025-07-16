@@ -942,6 +942,7 @@
             useEffect(() => {
                 if (!apiKey || !userId || !selectedOperator) {
                     setCalls([]);
+                    setCalls([]);
                     return;
                 }
 
@@ -966,7 +967,7 @@
                                     id: evaluation.id,
                                     fileName: `Call ${evaluation.phone_number}`,
                                     totalScore: evaluation.score.toFixed(2),
-                                    date: evaluation.evaluation_date,
+                                    date: evaluation.evaluation_date.split('T')[0],
                                     phoneNumber: evaluation.phone_number,
                                     combinedComment: evaluation.comment,
                                     selectedDirection: evaluation.direction?.name || selectedOperator.direction,
@@ -1099,7 +1100,7 @@
                         id: evaluation.id,
                         fileName: `Call ${evaluation.phone_number}`,
                         totalScore: evaluation.score.toFixed(2),
-                        date: evaluation.evaluation_date,
+                        date: evaluation.evaluation_date.split('T')[0],
                         phoneNumber: evaluation.phone_number,
                         combinedComment: evaluation.comment,
                         selectedDirection:
@@ -1516,7 +1517,7 @@
                                         <div key={idx} className="border border-muted/20 p-6 rounded-lg shadow-card bg-white">
                                             <div className="flex justify-between items-center mb-4">
                                                 <span className="font-bold text-text text-lg">Version {versionHistory.length - idx}</span>
-                                                <span className="text-base text-muted">{version.evaluation_date}</span>
+                                                <span className="text-base text-muted">{version.evaluation_date.split('T')[0]}</span>
                                             </div>
                                             <div className="grid grid-cols-2 gap-4 text-base">
                                                 <div><span className="font-semibold text-text">Score:</span> {version.score}</div>
