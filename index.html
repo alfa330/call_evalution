@@ -67,11 +67,12 @@
             text-align: center;
             font-size: 16px;
             cursor: pointer;
-            transition: box-shadow 0.3s ease;
+            transition: box-shadow 0.3s ease, transform 0.2s ease;
         }
         .date-input input:focus {
             box-shadow: 0 0 0 2px #27ae60;
             outline: none;
+            transform: scale(1.02);
         }
         .date-input::after {
             content: '\1F4C5'; /* Calendar emoji as icon */
@@ -131,11 +132,61 @@
             color: #555;
             font-weight: 500;
         }
+        .appeal-date-container {
+            margin-bottom: 30px;
+            position: relative;
+            animation: fadeIn 0.5s ease forwards;
+        }
+        .appeal-date-container input {
+            padding: 14px 45px 14px 14px;
+            width: 100%;
+            max-width: 300px;
+            border: none;
+            border-radius: 8px;
+            background-color: #f0f4f8;
+            box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            font-size: 16px;
+            cursor: pointer;
+            transition: box-shadow 0.3s ease, transform 0.2s ease;
+        }
+        .appeal-date-container input:focus {
+            box-shadow: 0 0 0 2px #4F46E5;
+            outline: none;
+            transform: scale(1.02);
+        }
+        .appeal-date-container::after {
+            content: '\1F4C5';
+            position: absolute;
+            right: 20px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 22px;
+            color: #4F46E5;
+            pointer-events: none;
+        }
+        .appeal-date-container .clear-button {
+            position: absolute;
+            right: 50px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 18px;
+            color: #6B7280;
+            cursor: pointer;
+            transition: color 0.3s ease;
+        }
+        .appeal-date-container .clear-button:hover {
+            color: #F59E0B;
+        }
+        .appeal-date-hint {
+            margin-top: 8px;
+            font-size: 14px;
+            color: #6B7280;
+            text-align: center;
+        }
         @media (max-width: 480px) {
-            .range-bar {
+            .range-bar, .appeal-date-container input {
                 width: 100%;
-            }
-            .date-input input {
                 max-width: 100%;
             }
         }
@@ -143,7 +194,7 @@
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .selected-range, .range-visual, .range-labels {
+        .selected-range, .range-visual, .range-labels, .appeal-date-container {
             animation: fadeIn 0.5s ease forwards;
         }
     </style>
@@ -159,7 +210,6 @@
             if (audioUrlCache[evaluationId]) {
                 return audioUrlCache[evaluationId];
             }
-        
             try {
                 const response = await fetch(`${API_BASE_URL}/api/audio/${evaluationId}`, {
                     method: 'GET',
@@ -168,9 +218,7 @@
                         'X-User-Id': userId
                     }
                 });
-        
                 if (!response.ok) throw new Error(`Failed to fetch audio: ${response.status}`);
-        
                 const data = await response.json();
                 if (data && data.url) {
                     audioUrlCache[evaluationId] = data.url;
@@ -187,7 +235,6 @@
 
         const SemicircleProgress = ({ value, max, label, color }) => {
             const canvasRef = useRef(null);
-        
             useEffect(() => {
                 const canvas = canvasRef.current;
                 const ctx = canvas.getContext('2d');
@@ -197,20 +244,16 @@
                 const startAngle = Math.PI;
                 const progress = value / max;
                 const endAngle = startAngle + (progress * Math.PI);
-        
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, radius, startAngle, startAngle + Math.PI);
                 ctx.lineWidth = 20;
                 ctx.strokeStyle = '#e5e7eb';
                 ctx.stroke();
-        
                 ctx.beginPath();
                 ctx.arc(centerX, centerY, radius, startAngle, endAngle);
                 ctx.strokeStyle = color;
                 ctx.stroke();
-        
                 ctx.font = 'bold 18px Arial';
                 ctx.fillStyle = '#1f2937';
                 ctx.textAlign = 'center';
@@ -219,7 +262,6 @@
                 ctx.fillText(`${displayValue}/${max}`, centerX, centerY - 20);
                 ctx.fillText(label, centerX, centerY + 20);
             }, [value, max, label, color]);
-        
             return (
                 <div className="flex flex-col items-center bg-card p-4 rounded-lg shadow-card">
                     <canvas ref={canvasRef} width={180} height={120} className="inline-block" />
@@ -238,7 +280,6 @@
             const [login, setLogin] = useState('');
             const [password, setPassword] = useState('');
             const [error, setError] = useState('');
-
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 try {
@@ -259,9 +300,7 @@
                     setError('Failed to login: ' + err.message);
                 }
             };
-
             if (!isOpen) return null;
-
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in">
                     <div className="bg-card p-8 rounded-xl shadow-hover w-full max-w-lg border border-primary/10">
@@ -314,7 +353,7 @@
             const [assignedMonth, setAssignedMonth] = useState(selectedMonth);
             const [isDraft, setIsDraft] = useState(false);
             const [isSubmitting, setIsSubmitting] = useState(false);
-            const [appealDate, setAppealDate] = useState(null); // New state for appeal_date
+            const [appealDate, setAppealDate] = useState(null);
             const appealDateRef = useRef(null);
 
             useEffect(() => {
@@ -326,7 +365,7 @@
                         setAssignedMonth(existingEvaluation.assignedMonth || selectedMonth);
                         setIsDraft(existingEvaluation.isDraft || false);
                         setAudioUrl(existingEvaluation.audioUrl || null);
-                        setAppealDate(existingEvaluation.appeal_date || null); // Set appeal_date from existing
+                        setAppealDate(existingEvaluation.appeal_date || null);
                         setPhoneError('');
                     } else {
                         setScores(directions[0]?.criteria.map(() => 'Correct') || []);
@@ -336,7 +375,7 @@
                         setPhoneNumber('7');
                         setAssignedMonth(selectedMonth);
                         setIsDraft(false);
-                        setAppealDate(null); // Default to null
+                        setAppealDate(null);
                         setPhoneError('');
                     }
                 }
@@ -363,14 +402,18 @@
                         enableTime: true,
                         dateFormat: "Y-m-d H:i:S",
                         time_24hr: true,
+                        defaultDate: appealDate,
+                        minuteIncrement: 1,
                         onChange: function(selectedDates) {
                             if (selectedDates.length > 0) {
                                 setAppealDate(selectedDates[0].toISOString());
+                            } else {
+                                setAppealDate(null);
                             }
                         }
                     });
                 }
-            }, []);
+            }, [appealDate]);
 
             const handleFileChange = (e) => {
                 const file = e.target.files[0];
@@ -407,7 +450,6 @@
                     value = value.slice(0, 11);
                 }
                 setPhoneNumber(value);
-
                 if (value.length === 11 && value.startsWith('7')) {
                     setPhoneError('');
                 } else if (value.length < 11) {
@@ -419,6 +461,13 @@
 
             const showCriterionValue = (index) => {
                 setShownCriterionIndex(shownCriterionIndex === index ? null : index);
+            };
+
+            const clearAppealDate = () => {
+                setAppealDate(null);
+                if (appealDateRef.current) {
+                    appealDateRef.current._flatpickr.clear();
+                }
             };
 
             const isSubmitDisabled = directions.length === 0 ||
@@ -454,7 +503,7 @@
                 formData.append('scores', JSON.stringify(scores));
                 formData.append('criterion_comments', JSON.stringify(criterionComments));
                 formData.append('direction', operator.direction_id);
-                formData.append('appeal_date', appealDate); // Add appeal_date to formData
+                formData.append('appeal_date', appealDate || '');
                 if (existingEvaluation?.isReevaluation) {
                     formData.append('previous_version_id', existingEvaluation.id);
                     formData.append('is_correction', true);
@@ -493,7 +542,7 @@
                             isDraft: saveAsDraft,
                             assignedMonth,
                             isCorrection: existingEvaluation?.isReevaluation || false,
-                            appeal_date: appealDate // Include appeal_date in submitted data
+                            appeal_date: appealDate
                         });
                         onClose();
                     } else {
@@ -566,13 +615,19 @@
                             className={`w-full p-4 border rounded-lg focus:outline-none focus:ring-2 ${phoneNumber.length === 11 && phoneNumber.startsWith('7') ? 'focus:ring-primary border-muted/20' : 'focus:ring-red-500 border-red-300'} transition-all duration-300 bg-white text-text`}
                         />
                         {phoneError && <p className="text-red-500 mt-2 text-base">{phoneError}</p>}
-                        <label className="block mb-3 font-semibold text-text text-lg mt-8">Appeal Date (optional)</label>
-                        <input
-                            ref={appealDateRef}
-                            type="text"
-                            placeholder="Select appeal date and time"
-                            className="w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text"
-                        />
+                        <label className="block mb-3 font-semibold text-text text-lg mt-8">Appeal Date and Time (Optional)</label>
+                        <div className="appeal-date-container">
+                            <input
+                                ref={appealDateRef}
+                                type="text"
+                                placeholder="Select appeal date and time (YYYY-MM-DD HH:MM:SS)"
+                                className="w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text"
+                            />
+                            {appealDate && (
+                                <span className="clear-button" onClick={clearAppealDate} title="Clear date">✕</span>
+                            )}
+                        </div>
+                        <p className="appeal-date-hint">Select the date and time of the client appeal (optional)</p>
                         <label className="block mb-3 font-semibold text-text text-lg mt-8">Criteria Evaluation</label>
                         {directions.length === 0 || directions[0]?.criteria.length === 0 ? (
                             <p className="text-red-500 text-base">No criteria defined for this direction.</p>
@@ -733,14 +788,13 @@
                 <td className="p-5 border-b"><div className="h-5 bg-background rounded w-2/3"></div></td>
                 <td className="p-5 border-b"><div className="h-5 bg-background rounded w-1/4"></div></td>
                 <td className="p-5 border-b"><div className="h-5 bg-background rounded w-1/3"></div></td>
-                <td className="p-5 border-b"><div className="h-5 bg-background rounded w-1/3"></div></td> {/* New for appeal_date */}
+                <td className="p-5 border-b"><div className="h-5 bg-background rounded w-1/3"></div></td>
             </tr>
         );
 
         const DateRangePicker = ({ minDate, maxDate, setFromDate, setToDate }) => {
             const [selectedDates, setSelectedDates] = React.useState([]);
             const inputRef = React.useRef(null);
-
             React.useEffect(() => {
                 if (inputRef.current) {
                     flatpickr(inputRef.current, {
@@ -753,7 +807,6 @@
                             if (dates.length === 2) {
                                 const start = new Date(dates[0]);
                                 const end = new Date(dates[1]);
-                                // Make end date inclusive by adding 1 day minus 1 ms
                                 end.setDate(end.getDate() + 1);
                                 end.setMilliseconds(end.getMilliseconds() - 1);
                                 setFromDate(start.toISOString());
@@ -766,9 +819,7 @@
                     });
                 }
             }, [minDate, maxDate]);
-
             const isValidRange = selectedDates.length === 2;
-
             let rangeText = 'Select date range';
             let rangePercentage = 0;
             let startDate = '';
@@ -777,7 +828,6 @@
             if (isValidRange) {
                 const start = selectedDates[0];
                 const end = selectedDates[1];
-                // Make diffDays inclusive
                 const diffTime = selectedDates[1] - selectedDates[0];
                 diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
                 const maxDiffDays = Math.floor((new Date(maxDate) - new Date(minDate)) / (1000 * 60 * 60 * 24)) + 1;
@@ -786,7 +836,6 @@
                 endDate = end.toISOString().split('T')[0];
                 rangeText = `From ${startDate} to ${endDate}`;
             }
-
             return (
                 <div className="flex flex-col space-y-2">
                     <label className="font-semibold text-text text-lg">Date Range:</label>
@@ -889,7 +938,6 @@
                     try {
                         const decodedToken = decodeURIComponent(token);
                         const tokenData = JSON.parse(safeAtob(decodedToken));
-                        
                         if (Date.now() - tokenData.timestamp < 300000) {
                             setApiKey(tokenData.apiKey);
                             setUserId(tokenData.userId);
@@ -999,7 +1047,7 @@
                                     date: evaluation.evaluation_date.split('T')[0],
                                     phoneNumber: evaluation.phone_number,
                                     combinedComment: evaluation.comment,
-                                    appeal_date: evaluation.appeal_date || '-', // Add appeal_date
+                                    appeal_date: evaluation.appeal_date || '-',
                                     selectedDirection: evaluation.direction?.name || selectedOperator.direction,
                                     directions: [{
                                         name: evaluation.direction?.name || selectedOperator.direction,
@@ -1053,126 +1101,110 @@
             };
 
             const handleEvaluateCall = (evaluationData) => {
-            setCalls((prevCalls) => {
-                if (!evaluationData) {
-                // Удаление черновика
-                return prevCalls.filter((c) => c.id !== editingEvaluation?.id);
+                setCalls((prevCalls) => {
+                    if (!evaluationData) {
+                        return prevCalls.filter((c) => c.id !== editingEvaluation?.id);
+                    }
+                    const newCall = {
+                        id: evaluationData.id,
+                        fileName: `Call ${evaluationData.phoneNumber}`,
+                        scores: evaluationData.scores,
+                        criterionComments: evaluationData.criterionComments,
+                        combinedComment: evaluationData.comment,
+                        totalScore: evaluationData.totalScore,
+                        date: new Date().toISOString().slice(0,10),
+                        audioUrl: evaluationData.audioUrl,
+                        isDraft: evaluationData.isDraft,
+                        selectedDirection: evaluationData.selectedDirection,
+                        directions: evaluationData.directions,
+                        phoneNumber: evaluationData.phoneNumber,
+                        assignedMonth: evaluationData.assignedMonth,
+                        direction_id: selectedOperator.direction_id,
+                        isCorrection: evaluationData.isCorrection,
+                        appeal_date: evaluationData.appeal_date
+                    };
+                    let updatedCalls = prevCalls;
+                    if (evaluationData.isCorrection) {
+                        updatedCalls = prevCalls.filter(
+                            (call) =>
+                                call.id !== evaluationData.id &&
+                                call.id !== evaluationData.previous_version_id
+                        );
+                    } else {
+                        updatedCalls = prevCalls.filter((c) => c.id !== newCall.id);
+                    }
+                    return [...updatedCalls, newCall];
+                });
+                if (evaluationData.isCorrection && evaluationData.id) {
+                    delete audioUrlCache[evaluationData.id];
+                    if (evaluationData.previous_version_id) {
+                        delete audioUrlCache[evaluationData.previous_version_id];
+                    }
                 }
-
-                const newCall = {
-                id: evaluationData.id,
-                fileName: `Call ${evaluationData.phoneNumber}`,
-                scores: evaluationData.scores,
-                criterionComments: evaluationData.criterionComments,
-                combinedComment: evaluationData.comment,
-                totalScore: evaluationData.totalScore,
-                date: new Date().toISOString().slice(0,10),
-                audioUrl: evaluationData.audioUrl,
-                isDraft: evaluationData.isDraft,
-                selectedDirection: evaluationData.selectedDirection,
-                directions: evaluationData.directions,
-                phoneNumber: evaluationData.phoneNumber,
-                assignedMonth: evaluationData.assignedMonth,
-                direction_id: selectedOperator.direction_id,
-                isCorrection: evaluationData.isCorrection,
-                appeal_date: evaluationData.appeal_date // Include appeal_date
-                };
-
-                // Если это переоценка, удаляем старую версию с тем же ID или связанную через previous_version_id
-                let updatedCalls = prevCalls;
-                if (evaluationData.isCorrection) {
-                updatedCalls = prevCalls.filter(
-                    (call) =>
-                    call.id !== evaluationData.id &&
-                    call.id !== evaluationData.previous_version_id // Предполагается, что previous_version_id доступен в evaluationData
-                );
-                } else {
-                updatedCalls = prevCalls.filter((c) => c.id !== newCall.id);
+                setEditingEvaluation(null);
+                if (!evaluationData.isDraft) {
+                    fetchEvaluations();
                 }
-
-                return [...updatedCalls, newCall];
-            });
-
-            // Очищаем кэш аудио для этой оценки, если это переоценка
-            if (evaluationData.isCorrection && evaluationData.id) {
-                delete audioUrlCache[evaluationData.id];
-                if (evaluationData.previous_version_id) {
-                delete audioUrlCache[evaluationData.previous_version_id];
-                }
-            }
-
-            setEditingEvaluation(null);
-
-            // Перезагружаем оценки с бэкенда для синхронизации
-            if (!evaluationData.isDraft) {
-                fetchEvaluations();
-            }
             };
 
-            // Функция для перезагрузки оценок
             const fetchEvaluations = async () => {
-            setIsLoading(true);
-            try {
-                const response = await fetch(
-                `${API_BASE_URL}/api/call_evaluations?operator_id=${selectedOperator.id}`,
-                {
-                    headers: {
-                    'X-API-Key': apiKey,
-                    'X-User-Id': userId,
-                    },
-                }
-                );
-                const data = await response.json();
-                if (data.status === 'success') {
-                const updatedCalls = await Promise.all(
-                    data.evaluations.map(async (evaluation) => {
-                    let audioUrl = null;
-                    return {
-                        id: evaluation.id,
-                        fileName: `Call ${evaluation.phone_number}`,
-                        totalScore: evaluation.score.toFixed(2),
-                        date: evaluation.evaluation_date.split('T')[0],
-                        phoneNumber: evaluation.phone_number,
-                        combinedComment: evaluation.comment,
-                        appeal_date: evaluation.appeal_date || '-', // Add appeal_date
-                        selectedDirection:
-                        evaluation.direction?.name || selectedOperator.direction,
-                        directions: [
+                setIsLoading(true);
+                try {
+                    const response = await fetch(
+                        `${API_BASE_URL}/api/call_evaluations?operator_id=${selectedOperator.id}`,
                         {
-                            name: evaluation.direction?.name || selectedOperator.direction,
-                            hasFileUpload: evaluation.direction?.hasFileUpload || true,
-                            criteria: evaluation.direction?.criteria || [],
-                        },
-                        ],
-                        scores: evaluation.scores || [],
-                        criterionComments: evaluation.criterion_comments || [],
-                        audioUrl,
-                        isDraft: evaluation.is_draft,
-                        assignedMonth: evaluation.month,
-                        isCorrection: evaluation.is_correction || false,
-                    };
-                    })
-                );
-                setCalls(updatedCalls);
+                            headers: {
+                                'X-API-Key': apiKey,
+                                'X-User-Id': userId,
+                            }
+                        }
+                    );
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        const updatedCalls = await Promise.all(
+                            data.evaluations.map(async (evaluation) => {
+                                let audioUrl = null;
+                                return {
+                                    id: evaluation.id,
+                                    fileName: `Call ${evaluation.phone_number}`,
+                                    totalScore: evaluation.score.toFixed(2),
+                                    date: evaluation.evaluation_date.split('T')[0],
+                                    phoneNumber: evaluation.phone_number,
+                                    combinedComment: evaluation.comment,
+                                    appeal_date: evaluation.appeal_date || '-',
+                                    selectedDirection: evaluation.direction?.name || selectedOperator.direction,
+                                    directions: [{
+                                        name: evaluation.direction?.name || selectedOperator.direction,
+                                        hasFileUpload: evaluation.direction?.hasFileUpload || true,
+                                        criteria: evaluation.direction?.criteria || []
+                                    }],
+                                    scores: evaluation.scores || [],
+                                    criterionComments: evaluation.criterion_comments || [],
+                                    audioUrl,
+                                    isDraft: evaluation.is_draft,
+                                    assignedMonth: evaluation.month,
+                                    isCorrection: evaluation.is_correction || false
+                                };
+                            })
+                        );
+                        setCalls(updatedCalls);
+                    }
+                } catch (err) {
+                    if (err.name !== 'AbortError') {
+                        console.error('Error fetching evaluations:', err);
+                    }
+                } finally {
+                    setIsLoading(false);
                 }
-            } catch (err) {
-                if (err.name !== 'AbortError') {
-                console.error('Error fetching evaluations:', err);
-                }
-            } finally {
-                setIsLoading(false);
-            }
             };
 
             const handleSelectCall = async (callId) => {
                 const call = calls.find(c => c.id === callId);
                 if (!call) return;
-
                 if (call.isDraft) {
                     handleEditDraft(call);
                     return;
                 }
-
                 if (expandedDetails !== callId) {
                     setLoadingCallId(callId);
                     try {
@@ -1224,7 +1256,6 @@
             const monthStart = `${selectedMonth}-01`;
             const lastDay = new Date(parseInt(selectedMonth.slice(0,4)), parseInt(selectedMonth.slice(5,7)), 0).getDate();
             const monthEnd = `${selectedMonth}-${lastDay.toString().padStart(2,'0')}`;
-
             const callsByMonth = calls.filter(call => call.assignedMonth === selectedMonth);
             let displayedCalls = callsByMonth;
             if (viewMode === 'normal') {
@@ -1257,7 +1288,6 @@
                             </button>
                         </div>
                     </header>
-
                     <main className="bg-card p-10 rounded-xl shadow-card border border-primary/10">
                         <div className="flex justify-between items-center mb-10">
                             <h2 className="text-3xl font-bold text-text">Call Evaluations Overview</h2>
@@ -1335,7 +1365,7 @@
                                             <th className="p-5 border-b text-left text-base font-bold text-text">Direction</th>
                                             <th className="p-5 border-b text-left text-base font-bold text-text">Phone Number</th>
                                             <th className="p-5 border-b text-left text-base font-bold text-text">Total Score</th>
-                                            <th className="p-5 border-b text-left text-base font-bold text-text">Appeal Date</th> {/* New column */}
+                                            <th className="p-5 border-b text-left text-base font-bold text-text">Appeal Date</th>
                                             <th className="p-5 border-b text-left text-base font-bold text-text">Date</th>
                                         </tr>
                                     </thead>
@@ -1361,7 +1391,7 @@
                                             <th className="p-5 border-b text-left text-base font-bold text-text">Direction</th>
                                             <th className="p-5 border-b text-left text-base font-bold text-text">Phone Number</th>
                                             <th className="p-5 border-b text-left text-base font-bold text-text">Total Score</th>
-                                            <th className="p-5 border-b text-left text-base font-bold text-text">Appeal Date</th> {/* New column */}
+                                            <th className="p-5 border-b text-left text-base font-bold text-text">Appeal Date</th>
                                             <th className="p-5 border-b text-left text-base font-bold text-text">Date</th>
                                         </tr>
                                     </thead>
@@ -1388,7 +1418,7 @@
                                                     <td className="p-5 border-b text-base text-text">{call.selectedDirection || '-'}</td>
                                                     <td className="p-5 border-b text-base text-text">{call.phoneNumber || '-'}</td>
                                                     <td className="p-5 border-b text-base text-text">{call.totalScore}</td>
-                                                    <td className="p-5 border-b text-base text-text">{call.appeal_date || '-'}</td> {/* Display appeal_date */}
+                                                    <td className="p-5 border-b text-base text-text">{call.appeal_date || '-'}</td>
                                                     <td className="p-5 border-b text-base flex items-center space-x-3">
                                                         {call.date}
                                                         {userRole === 'admin' && !call.isDraft && (
@@ -1436,7 +1466,7 @@
                                                 </tr>
                                                 {expandedDetails === call.id && (
                                                     <tr>
-                                                        <td colSpan="7" className="p-8 border-b bg-background"> {/* Increased colSpan */}
+                                                        <td colSpan="7" className="p-8 border-b bg-background">
                                                             <div className="text-base">
                                                                 <h4 className="font-bold mb-4 text-text text-xl">Evaluation Details:</h4>
                                                                 {call.directions && call.directions.length > 0 ? (
@@ -1466,7 +1496,7 @@
                                                                                 ))}
                                                                             </tbody>
                                                                         </table>
-                                                                        <p className="mt-4 text-base text-text"><strong>Appeal Date:</strong> {call.appeal_date || '-'}</p> {/* Show in details */}
+                                                                        <p className="mt-4 text-base text-text"><strong>Appeal Date:</strong> {call.appeal_date || '-'}</p>
                                                                         {call.audioUrl && call.directions[0]?.hasFileUpload && (
                                                                             <audio controls className="w-full max-w-[500px] mt-6">
                                                                                 <source src={call.audioUrl} type="audio/mpeg" />
@@ -1523,7 +1553,6 @@
                             </div>
                         </div>
                     </main>
-
                     <LoginModal
                         isOpen={showLoginModal}
                         onClose={() => setShowLoginModal(false)}
@@ -1560,7 +1589,7 @@
                                                 <div><span className="font-semibold text-text">Evaluator:</span> {version.evaluator_name}</div>
                                                 <div><span className="font-semibold text-text">Phone:</span> {version.phone_number}</div>
                                                 <div><span className="font-semibold text-text">Month:</span> {version.month}</div>
-                                                <div><span className="font-semibold text-text">Appeal Date:</span> {version.appeal_date || '-'}</div> {/* Add to history */}
+                                                <div><span className="font-semibold text-text">Appeal Date:</span> {version.appeal_date || '-'}</div>
                                             </div>
                                             {version.comment && (
                                                 <div className="mt-4">
