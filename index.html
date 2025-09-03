@@ -615,7 +615,7 @@
                             type="text"
                             value={appealDate}
                             onChange={handleAppealDateChange}
-                            placeholder="YYYY-MM-DD HH:MM:SS"
+                            placeholder="DD-MM-YYYY HH:MM:SS"
                             className="w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text"
                         />
                         <label className="block mb-3 font-semibold text-text text-lg mt-8">Criteria Evaluation</label>
@@ -662,18 +662,18 @@
                                                     onChange={(e) => handleScoreChange(index, e.target.value)}
                                                     className={`w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 ${scores[index] === 'Correct' || scores[index] === 'N/A' ? 'bg-green-50' : 'bg-red-50'}`}
                                                 >
-                                                  <option value="Correct">Correct</option>
-                                                  <option value="N/A">N/A</option>
+                                                  <option value="Correct" className="bg-green-50">Correct</option>
+                                                  <option value="N/A" className="bg-green-50">N/A</option>
                                                   {!criterion.isCritical && (
                                                     <>
-                                                      <option value="Incorrect">Incorrect</option>
+                                                      <option value="Incorrect" className="bg-red-50">Incorrect</option>
                                                       {criterion.deficiency && (
-                                                        <option value="Deficiency">Deficiency</option>
+                                                        <option value="Deficiency" className="bg-yellow-50">Deficiency</option>
                                                       )}
                                                     </>
                                                   )}
                                                   {criterion.isCritical && (
-                                                    <option value="Error">Error</option>
+                                                    <option value="Error" className="bg-red-50">Error</option>
                                                   )}
                                                 </select>
                                                 <svg
@@ -711,7 +711,7 @@
                                     criterion.isCritical && scores[index] === 'Error'
                                 ) ? '0/100' : 
                                 `${directions[0]?.criteria.reduce((sum, criterion, index) => {
-                                    return sum + (!criterion.isCritical && (scores[index] === 'Correct' || scores[index] === 'N/A') ? criterion.weight : 0);
+                                    return sum + (!criterion.isCritical && ( scores[index] === 'Correct' || scores[index] === 'N/A' ? criterion.weight : (scores[index] === 'Deficiency' && criterion.deficiency  ? criterion.deficiency.weight : 0))); 
                                 }, 0)}/100`
                             }
                         </p>
