@@ -691,7 +691,7 @@
                                                     />
                                                 </svg>
                                             </div>
-                                            {(scores[index] === 'Error' || scores[index] === 'Incorrect') && (
+                                            {(scores[index] === 'Error' || scores[index] === 'Incorrect' || scores[index] === 'Deficiency') && (
                                                 <textarea
                                                     value={criterionComments[index] || ''}
                                                     onChange={(e) => handleCommentChange(index, e.target.value)}
