@@ -431,12 +431,12 @@
                 let digits = input.replace(/\D/g, "");
                 if (digits.length > 14) digits = digits.slice(0, 14);
                 let formatted = "";
-                if (digits.length > 0) formatted += digits.slice(0, 4);
-                if (digits.length > 4) formatted += "-" + digits.slice(4, 6);
-                if (digits.length > 6) formatted += "-" + digits.slice(6, 8);
-                if (digits.length > 8) formatted += " " + digits.slice(8, 10);
-                if (digits.length > 10) formatted += ":" + digits.slice(10, 12);
-                if (digits.length > 12) formatted += ":" + digits.slice(12, 14);
+                if (digits.length > 0) formatted += digits.slice(0, 2); // DD
+                if (digits.length > 2) formatted += "-" + digits.slice(2, 4); // MM
+                if (digits.length > 4) formatted += "-" + digits.slice(4, 8); // YYYY
+                if (digits.length > 8) formatted += " " + digits.slice(8, 10); // HH
+                if (digits.length > 10) formatted += ":" + digits.slice(10, 12); // mm
+                if (digits.length > 12) formatted += ":" + digits.slice(12, 14); // ss
                 return formatted;
             };
 
@@ -459,7 +459,7 @@
                 if (!appealDate) return null;
                 let digits = appealDate.replace(/\D/g, "");
                 if (digits.length !== 14) return null;
-                return `${digits.slice(0,4)}-${digits.slice(4,6)}-${digits.slice(6,8)}T${digits.slice(8,10)}:${digits.slice(10,12)}:${digits.slice(12,14)}`;
+                return `${digits.slice(4,8)}-${digits.slice(2,4)}-${digits.slice(0,2)}T${digits.slice(8,10)}:${digits.slice(10,12)}:${digits.slice(12,14)}`;
             };
 
             const handleSubmit = async (saveAsDraft = false) => {
@@ -470,7 +470,14 @@
                     criterion.isCritical && scores[index] === 'Error'
                 );
                 const totalScore = hasCriticalError ? 0 : criteria.reduce((sum, criterion, index) => {
-                    return sum + (!criterion.isCritical && (scores[index] === 'Correct' || scores[index] === 'N/A') ? criterion.weight : 0);
+                    if (criterion.isCritical) return sum;
+                    if (scores[index] === 'Correct' || scores[index] === 'N/A') {
+                        return sum + criterion.weight;
+                    }
+                    if (scores[index] === 'Deficiency' && criterion.deficiency) {
+                        return sum + criterion.deficiency.weight;
+                    }
+                    return sum;
                 }, 0);
                 const combinedComment = criterionComments
                     .map((comment, index) => comment ? `${criteria[index].name}: ${comment}` : '')
@@ -655,13 +662,19 @@
                                                     onChange={(e) => handleScoreChange(index, e.target.value)}
                                                     className={`w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 ${scores[index] === 'Correct' || scores[index] === 'N/A' ? 'bg-green-50' : 'bg-red-50'}`}
                                                 >
-                                                    <option value="Correct" className="bg-green-50">Correct</option>
-                                                    <option value="N/A" className="bg-green-50">N/A</option>
-                                                    {criterion.isCritical ? (
-                                                        <option value="Error" className="bg-red-50">Error</option>
-                                                    ) : (
-                                                        <option value="Incorrect" className="bg-red-50">Incorrect</option>
-                                                    )}
+                                                  <option value="Correct">Correct</option>
+                                                  <option value="N/A">N/A</option>
+                                                  {!criterion.isCritical && (
+                                                    <>
+                                                      <option value="Incorrect">Incorrect</option>
+                                                      {criterion.deficiency && (
+                                                        <option value="Deficiency">Deficiency</option>
+                                                      )}
+                                                    </>
+                                                  )}
+                                                  {criterion.isCritical && (
+                                                    <option value="Error">Error</option>
+                                                  )}
                                                 </select>
                                                 <svg
                                                     className={`w-7 h-7 ${scores[index] === 'Correct' || scores[index] === 'N/A' ? 'text-secondary' : 'text-red-500'}`}
