@@ -285,7 +285,7 @@
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in">
                     <div className="bg-card p-8 rounded-xl shadow-hover w-full max-w-lg border border-primary/10">
-                        <h2 className="text-3xl font-bold mb-6 text-text">Login to Dashboard</h2>
+                        <h2 className="text-3xl font-bold mb-6 text-text">Вход в аккаунт</h2>
                         {error && <p className="text-red-500 mb-4 text-base">{error}</p>}
                         <div className="space-y-6">
                             <input
@@ -307,13 +307,13 @@
                                     onClick={handleSubmit}
                                     className="bg-primary text-white px-6 py-3 rounded-lg hover:bg-primary/90 transition-all duration-300 font-medium"
                                 >
-                                    Login
+                                    Вход
                                 </button>
                                 <button
                                     onClick={onClose}
                                     className="bg-muted text-white px-6 py-3 rounded-lg hover:bg-muted/90 transition-all duration-300 font-medium"
                                 >
-                                    Cancel
+                                    Отмена
                                 </button>
                             </div>
                         </div>
@@ -578,11 +578,11 @@
                 <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in">
                     <div className="bg-card p-10 rounded-xl shadow-hover w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-primary/10">
                         <h2 className="text-3xl font-bold mb-8 text-text">
-                            {existingEvaluation?.isReevaluation ? 'Re-evaluate Call' : existingEvaluation?.isDraft ? 'Edit Draft Evaluation' : 'Evaluate Call'} - Operator: {operator?.name}
+                            {existingEvaluation?.isReevaluation ? 'Re-evaluate Call' : existingEvaluation?.isDraft ? 'Edit Draft Evaluation' : 'Evaluate Call'} - Оператор: {operator?.name}
                         </h2>
                         {directions[0]?.hasFileUpload && (
                             <div className="mb-8 bg-background p-6 rounded-lg shadow-card">
-                                <label className="block mb-3 font-semibold text-text text-lg">Upload Call Recording (Required)</label>
+                                <label className="block mb-3 font-semibold text-text text-lg">Загрузить аудио звонка (Обяз.)</label>
                                 <input
                                     type="file"
                                     accept="audio/*"
@@ -591,17 +591,17 @@
                                 />
                                 {audioUrl && (
                                     <div className="sticky top-0 z-10 bg-card p-4 border-b border-muted/20 mt-6 rounded-lg shadow-card">
-                                        <label className="block mb-3 font-semibold text-text text-lg">Listen to Recording</label>
+                                        <label className="block mb-3 font-semibold text-text text-lg">Прослушать звонок</label>
                                         <audio controls className="w-full max-w-[500px]">
                                             <source src={audioUrl} type="audio/mpeg" />
-                                            Your browser does not support the audio element.
+                                            Ваш браузер не поддерживает данный формат.
                                         </audio>
                                     </div>
                                 )}
                                 {audioError && <p className="text-red-500 mt-3 text-base">{audioError}</p>}
                             </div>
                         )}
-                        <label className="block mb-3 font-semibold text-text text-lg">Phone Number</label>
+                        <label className="block mb-3 font-semibold text-text text-lg">Номер телефона</label>
                         <input
                             type="text"
                             value={phoneNumber}
@@ -610,7 +610,7 @@
                             className={`w-full p-4 border rounded-lg focus:outline-none focus:ring-2 ${phoneNumber.length === 11 && phoneNumber.startsWith('7') ? 'focus:ring-primary border-muted/20' : 'focus:ring-red-500 border-red-300'} transition-all duration-300 bg-white text-text`}
                         />
                         {phoneError && <p className="text-red-500 mt-2 text-base">{phoneError}</p>}
-                        <label className="block mb-3 font-semibold text-text text-lg mt-8">Appeal Date (optional)</label>
+                        <label className="block mb-3 font-semibold text-text text-lg mt-8">Дата обращения</label>
                         <input
                             type="text"
                             value={appealDate}
@@ -618,9 +618,9 @@
                             placeholder="DD-MM-YYYY HH:MM:SS"
                             className="w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text"
                         />
-                        <label className="block mb-3 font-semibold text-text text-lg mt-8">Criteria Evaluation</label>
+                        <label className="block mb-3 font-semibold text-text text-lg mt-8">Критерии оценивания</label>
                         {directions.length === 0 || directions[0]?.criteria.length === 0 ? (
-                            <p className="text-red-500 text-base">No criteria defined for this direction.</p>
+                            <p className="text-red-500 text-base">У направления нет критериев.</p>
                         ) : (
                             <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-primary scrollbar-track-background">
                                 <div className="space-y-6">
@@ -662,13 +662,13 @@
                                                     onChange={(e) => handleScoreChange(index, e.target.value)}
                                                     className={`w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 ${scores[index] === 'Correct' || scores[index] === 'N/A' ? 'bg-green-50' : 'bg-red-50'}`}
                                                 >
-                                                  <option value="Correct" className="bg-green-50">Correct</option>
+                                                  <option value="Correct" className="bg-green-50">Корректно</option>
                                                   <option value="N/A" className="bg-green-50">N/A</option>
                                                   {!criterion.isCritical && (
                                                     <>
-                                                      <option value="Incorrect" className="bg-red-50">Incorrect</option>
+                                                      <option value="Incorrect" className="bg-red-50">Ошибка</option>
                                                       {criterion.deficiency && (
-                                                        <option value="Deficiency" className="bg-yellow-50">Deficiency</option>
+                                                        <option value="Deficiency" className="bg-yellow-50">Недочет</option>
                                                       )}
                                                     </>
                                                   )}
@@ -730,7 +730,7 @@
                                     </button>
                                 </div>
                                 <p className="text-base text-muted bg-background p-4 rounded-md shadow-inner">
-                                    {directions[0]?.criteria[shownCriterionIndex]?.value || 'No description provided'}
+                                    {directions[0]?.criteria[shownCriterionIndex]?.value || 'Описания не имееться'}
                                 </p>
                             </div>
                         )}
@@ -740,7 +740,7 @@
                                     onClick={handleDeleteDraft}
                                     className="bg-red-500 text-white px-6 py-3 rounded-lg hover:bg-red-600 transition-all duration-300 font-medium"
                                 >
-                                    Delete Draft
+                                    Удалить черновик
                                 </button>
                             )}
                             <button
@@ -754,15 +754,15 @@
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        Processing...
+                                        Загрузка...
                                     </span>
-                                ) : 'Submit'}
+                                ) : 'Отправить'}
                             </button>
                             <button
                                 onClick={onClose}
                                 className="bg-muted text-white px-6 py-3 rounded-lg hover:bg-muted/90 transition-all duration-300 font-medium"
                             >
-                                Cancel
+                                Отмена
                             </button>
                         </div>
                     </div>
@@ -814,7 +814,7 @@
 
             const isValidRange = selectedDates.length === 2;
 
-            let rangeText = 'Select date range';
+            let rangeText = 'Выбрать период';
             let rangePercentage = 0;
             let startDate = '';
             let endDate = '';
@@ -834,12 +834,12 @@
 
             return (
                 <div className="flex flex-col space-y-2">
-                    <label className="font-semibold text-text text-lg">Date Range:</label>
+                    <label className="font-semibold text-text text-lg">Период:</label>
                     <div className="date-input">
                         <input 
                             ref={inputRef}
                             type="text" 
-                            placeholder="Select period" 
+                            placeholder="Выбрать период" 
                             readOnly={true}
                         />
                     </div>
@@ -847,7 +847,7 @@
                         <div className="range-visual">
                             <div className="range-bar">
                                 <div className="range-fill" style={{ width: `${rangePercentage}%` }}>
-                                    {diffDays} days
+                                    {diffDays} дней
                                 </div>
                             </div>
                         </div>
@@ -1289,33 +1289,33 @@
             return (
                 <div className="min-h-screen bg-background p-8 max-w-7xl mx-auto">
                     <header className="flex justify-between items-center mb-10 bg-card p-6 rounded-xl shadow-card border border-primary/10">
-                        <h1 className="text-4xl font-extrabold text-text">Call Evaluation Dashboard</h1>
+                        <h1 className="text-4xl font-extrabold text-text">Оенки операторов</h1>
                         <div className="flex space-x-4 items-center">
                             {userName && (
-                                <span className="text-base font-medium text-muted">Welcome, {userName}</span>
+                                <span className="text-base font-medium text-muted">Добро пожаловать, {userName}</span>
                             )}
                             <button
                                 onClick={() => setShowLoginModal(true)}
                                 className="bg-red-600 text-white px-8 py-4 rounded-lg hover:bg-red-700 transition-all duration-300 font-medium"
                             >
-                                Logout
+                                Выход
                             </button>
                         </div>
                     </header>
 
                     <main className="bg-card p-10 rounded-xl shadow-card border border-primary/10">
                         <div className="flex justify-between items-center mb-10">
-                            <h2 className="text-3xl font-bold text-text">Call Evaluations Overview</h2>
+                            <h2 className="text-3xl font-bold text-text">Просмотр оценок</h2>
                             <div className="flex flex-wrap items-center gap-6">
                                 {userRole === 'admin' && (
                                     <div className="flex flex-col space-y-2">
-                                        <label className="font-semibold text-text text-lg">Supervisor:</label>
+                                        <label className="font-semibold text-text text-lg">Супервайзеры:</label>
                                         <select
                                             value={selectedSupervisor || ''}
                                             onChange={handleSupervisorChange}
                                             className="p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text min-w-[200px]"
                                         >
-                                            <option value="">Select Supervisor</option>
+                                            <option value="">Выбрать супервайзера</option>
                                             {supervisors.map(sv => (
                                                 <option key={sv.id} value={sv.id}>{sv.name}</option>
                                             ))}
@@ -1323,20 +1323,20 @@
                                     </div>
                                 )}
                                 <div className="flex flex-col space-y-2">
-                                    <label className="font-semibold text-text text-lg">Operator:</label>
+                                    <label className="font-semibold text-text text-lg">Оператор:</label>
                                     <select
                                         value={selectedOperator?.id || ''}
                                         onChange={handleOperatorChange}
                                         className="p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text min-w-[200px]"
                                     >
-                                        <option value="">Select Operator</option>
+                                        <option value="">Выбрать оператора</option>
                                         {operators.map(op => (
                                             <option key={op.id} value={op.id}>{op.name}</option>
                                         ))}
                                     </select>
                                 </div>
                                 <div className="flex flex-col space-y-2">
-                                    <label className="font-semibold text-text text-lg">Month:</label>
+                                    <label className="font-semibold text-text text-lg">Месяц:</label>
                                     <select
                                         value={selectedMonth}
                                         onChange={(e) => setSelectedMonth(e.target.value)}
@@ -1376,12 +1376,12 @@
                                     <thead>
                                         <tr className="bg-primary/10">
                                             <th className="p-5 border-b text-left text-base font-bold text-text">№</th>
-                                            <th className="p-5 border-b text-left text-base font-bold text-text">Status</th>
-                                            <th className="p-5 border-b text-left text-base font-bold text-text">Direction</th>
-                                            <th className="p-5 border-b text-left text-base font-bold text-text">Phone Number</th>
-                                            <th className="p-5 border-b text-left text-base font-bold text-text">Total Score</th>
-                                            <th className="p-5 border-b text-left text-base font-bold text-text">Appeal Date</th>
-                                            <th className="p-5 border-b text-left text-base font-bold text-text">Date</th>
+                                            <th className="p-5 border-b text-left text-base font-bold text-text">Статус</th>
+                                            <th className="p-5 border-b text-left text-base font-bold text-text">Направление</th>
+                                            <th className="p-5 border-b text-left text-base font-bold text-text">Номер телефона</th>
+                                            <th className="p-5 border-b text-left text-base font-bold text-text">Общий балл</th>
+                                            <th className="p-5 border-b text-left text-base font-bold text-text">Дата обр.</th>
+                                            <th className="p-5 border-b text-left text-base font-bold text-text">Дата оцен.</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1394,7 +1394,7 @@
                         ) : (
                             <div className="text-center py-12 bg-background rounded-xl shadow-inner border border-muted/20">
                                 <p className="text-text text-xl font-semibold">No calls evaluated for {monthOptions.find(m => m.value === selectedMonth)?.label || selectedMonth}.</p>
-                                <p className="text-muted text-base mt-3">Select an operator and month to view evaluations, or add a new evaluation to get started.</p>
+                                <p className="text-muted text-base mt-3">Выберите оператора и месяц, чтобы просмотреть оценки, или добавьте новую оценку, чтобы начать.</p>
                             </div>
                         ) : (
                             <div className="overflow-x-auto rounded-xl shadow-card border border-muted/20">
@@ -1402,12 +1402,12 @@
                                     <thead>
                                         <tr className="bg-primary/10">
                                             <th className="p-5 border-b text-left text-base font-bold text-text">№</th>
-                                            <th className="p-5 border-b text-left text-base font-bold text-text">Status</th>
-                                            <th className="p-5 border-b text-left text-base font-bold text-text">Direction</th>
-                                            <th className="p-5 border-b text-left text-base font-bold text-text">Phone Number</th>
-                                            <th className="p-5 border-b text-left text-base font-bold text-text">Total Score</th>
-                                            <th className="p-5 border-b text-left text-base font-bold text-text">Appeal Date</th>
-                                            <th className="p-5 border-b text-left text-base font-bold text-text">Date</th>
+                                            <th className="p-5 border-b text-left text-base font-bold text-text">Статус</th>
+                                            <th className="p-5 border-b text-left text-base font-bold text-text">Направление</th>
+                                            <th className="p-5 border-b text-left text-base font-bold text-text">Номер телефона</th>
+                                            <th className="p-5 border-b text-left text-base font-bold text-text">Общий балл</th>
+                                            <th className="p-5 border-b text-left text-base font-bold text-text">Дата обр.</th>
+                                            <th className="p-5 border-b text-left text-base font-bold text-text">Дата оцен.</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1422,11 +1422,11 @@
                                                         {loadingCallId === call.id ? (
                                                             <div className="flex items-center">
                                                                 <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary mr-3"></div>
-                                                                <span className="text-muted">Loading...</span>
+                                                                <span className="text-muted">Загрузка...</span>
                                                             </div>
                                                         ) : (
                                                             <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${call.isDraft ? 'bg-accent/20 text-accent' : 'bg-secondary/20 text-secondary'}`}>
-                                                                {call.isDraft ? 'Draft' : 'Submitted'}
+                                                                {call.isDraft ? 'Черновик' : 'Загружен'}
                                                             </span>
                                                         )}
                                                     </td>
@@ -1445,9 +1445,9 @@
                                                                         setShowEvaluationModal(true);
                                                                     }}
                                                                     className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 text-sm transition-all duration-300 font-medium"
-                                                                    title="Re-evaluate this call"
+                                                                    title="Переоценить звонок/чат"
                                                                 >
-                                                                    Re-evaluate
+                                                                    Переоценить
                                                                 </button>
                                                                 {call.isCorrection && (
                                                                     <button
@@ -1472,7 +1472,7 @@
                                                                         className="bg-accent text-white px-4 py-2 rounded-lg hover:bg-accent/90 text-sm transition-all duration-300 font-medium"
                                                                         title="View version history"
                                                                     >
-                                                                        View History
+                                                                        Посмотреть истроию
                                                                     </button>
                                                                 )}
                                                             </>
@@ -1483,24 +1483,24 @@
                                                     <tr>
                                                         <td colSpan="7" className="p-8 border-b bg-background">
                                                             <div className="text-base">
-                                                                <h4 className="font-bold mb-4 text-text text-xl">Evaluation Details:</h4>
+                                                                <h4 className="font-bold mb-4 text-text text-xl">Детали оценки:</h4>
                                                                 {call.directions && call.directions.length > 0 ? (
                                                                     <div>
                                                                         <h5 className="text-base font-bold text-text mb-4">{call.selectedDirection}</h5>
                                                                         <table className="w-full border-collapse bg-white rounded-lg shadow-card overflow-hidden">
                                                                             <thead>
                                                                                 <tr className="bg-primary/10">
-                                                                                    <th className="p-4 border-b text-left text-base font-bold text-text">Criterion</th>
-                                                                                    <th className="p-4 border-b text-left text-base font-bold text-text">Weight</th>
-                                                                                    <th className="p-4 border-b text-left text-base font-bold text-text">Score</th>
-                                                                                    <th className="p-4 border-b text-left text-base font-bold text-text">Comment</th>
+                                                                                    <th className="p-4 border-b text-left text-base font-bold text-text">Критерии</th>
+                                                                                    <th className="p-4 border-b text-left text-base font-bold text-text">Вес</th>
+                                                                                    <th className="p-4 border-b text-left text-base font-bold text-text">Балл</th>
+                                                                                    <th className="p-4 border-b text-left text-base font-bold text-text">Коммент</th>
                                                                                 </tr>
                                                                             </thead>
                                                                             <tbody>
                                                                                 {call.directions[0].criteria.map((criterion, critIndex) => (
                                                                                     <tr key={critIndex} className="hover:bg-background transition-all duration-300">
                                                                                         <td className="p-4 border-b text-base text-text">{criterion.name}</td>
-                                                                                        <td className="p-4 border-b text-base text-text">{criterion.isCritical ? '(Critical)' : `${criterion.weight}%`}</td>
+                                                                                        <td className="p-4 border-b text-base text-text">{criterion.isCritical ? '(Критический)' : `${criterion.weight}%`}</td>
                                                                                         <td className="p-4 border-b text-base">
                                                                                             <span className={`${call.scores[critIndex] === 'Correct' || call.scores[critIndex] === 'N/A' ? 'text-secondary' : 'text-red-500'} font-medium`}>
                                                                                                 {call.scores[critIndex] || 'Correct'}
@@ -1515,18 +1515,18 @@
                                                                         {call.audioUrl && call.directions[0]?.hasFileUpload && (
                                                                             <audio controls className="w-full max-w-[500px] mt-6">
                                                                                 <source src={call.audioUrl} type="audio/mpeg" />
-                                                                                Your browser does not support the audio element.
+                                                                                Ваш браузер не поддерживает элемент audio.
                                                                             </audio>
                                                                         )}
                                                                         {loadingCallId === call.id && (
                                                                             <div className="flex items-center mt-4">
                                                                                 <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary mr-3"></div>
-                                                                                <span className="text-base text-muted">Loading audio...</span>
+                                                                                <span className="text-base text-muted">Загрузка аудио...</span>
                                                                             </div>
                                                                         )}
                                                                     </div>
                                                                 ) : (
-                                                                    <p className="text-muted text-base">No criteria evaluated.</p>
+                                                                    <p className="text-muted text-base">Нет критериев.</p>
                                                                 )}
                                                             </div>
                                                         </td>
@@ -1541,7 +1541,7 @@
                         <div className="mt-8 flex justify-between items-center">
                             {selectedOperator && (
                                 <p className="text-base text-muted">
-                                    Showing {displayedCalls.length} {viewMode === 'extra' ? 'extra ' : ''}evaluations for {selectedOperator.name} in {monthOptions.find(m => m.value === selectedMonth)?.label || selectedMonth}
+                                    Showing {displayedCalls.length} {viewMode === 'extra' ? 'extra ' : ''}оценки {selectedOperator.name} за {monthOptions.find(m => m.value === selectedMonth)?.label || selectedMonth}
                                 </p>
                             )}
                             <div className="flex items-center space-x-4">
@@ -1562,7 +1562,7 @@
                                         className={`bg-secondary text-white px-6 py-3 rounded-full hover:bg-secondary/90 text-base font-bold transition-all duration-300 ${!selectedOperator || isMaxEvaluationsReached ? 'opacity-50 cursor-not-allowed' : ''}`}
                                         disabled={!selectedOperator || isMaxEvaluationsReached}
                                     >
-                                        + Add New Evaluation
+                                        + Добавить оценку
                                     </button>
                                 )}
                             </div>
@@ -1592,24 +1592,24 @@
                     {showVersionsModal && (
                         <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in">
                             <div className="bg-card p-8 rounded-xl shadow-hover w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-primary/10">
-                                <h2 className="text-3xl font-bold mb-6 text-text">Version History</h2>
+                                <h2 className="text-3xl font-bold mb-6 text-text">История оценки</h2>
                                 <div className="space-y-6">
                                     {versionHistory.map((version, idx) => (
                                         <div key={idx} className="border border-muted/20 p-6 rounded-lg shadow-card bg-white">
                                             <div className="flex justify-between items-center mb-4">
-                                                <span className="font-bold text-text text-lg">Version {versionHistory.length - idx}</span>
+                                                <span className="font-bold text-text text-lg">Версия {versionHistory.length - idx}</span>
                                                 <span className="text-base text-muted">{version.evaluation_date.split('T')[0]}</span>
                                             </div>
                                             <div className="grid grid-cols-2 gap-4 text-base">
-                                                <div><span className="font-semibold text-text">Score:</span> {version.score}</div>
-                                                <div><span className="font-semibold text-text">Evaluator:</span> {version.evaluator_name}</div>
-                                                <div><span className="font-semibold text-text">Phone:</span> {version.phone_number}</div>
-                                                <div><span className="font-semibold text-text">Month:</span> {version.month}</div>
-                                                <div><span className="font-semibold text-text">Appeal Date:</span> {version.appeal_date || '-'}</div>
+                                                <div><span className="font-semibold text-text">Балл:</span> {version.score}</div>
+                                                <div><span className="font-semibold text-text">Оценивающий:</span> {version.evaluator_name}</div>
+                                                <div><span className="font-semibold text-text">Номер тел.:</span> {version.phone_number}</div>
+                                                <div><span className="font-semibold text-text">Месяц:</span> {version.month}</div>
+                                                <div><span className="font-semibold text-text">Дата обращения:</span> {version.appeal_date || '-'}</div>
                                             </div>
                                             {version.comment && (
                                                 <div className="mt-4">
-                                                    <span className="font-semibold text-text">Comment:</span>
+                                                    <span className="font-semibold text-text">Коммент:</span>
                                                     <p className="text-base text-muted mt-2">{version.comment}</p>
                                                 </div>
                                             )}
@@ -1617,7 +1617,7 @@
                                                 <div className="mt-4">
                                                     <audio controls className="w-full max-w-[500px]">
                                                         <source src={version.audio_url || ''} type="audio/mpeg" />
-                                                        Your browser does not support the audio element.
+                                                        Ваш браузер не поддерживает элемент audio.
                                                     </audio>
                                                 </div>
                                             )}
@@ -1629,7 +1629,7 @@
                                         onClick={() => setShowVersionsModal(false)}
                                         className="bg-muted text-white px-6 py-3 rounded-lg hover:bg-muted/90 transition-all duration-300 font-medium"
                                     >
-                                        Close
+                                        Закрыть
                                     </button>
                                 </div>
                             </div>
