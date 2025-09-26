@@ -328,7 +328,7 @@
             const [audioError, setAudioError] = useState(null);
             const [scores, setScores] = useState([]);
             const [criterionComments, setCriterionComments] = useState([]);
-            const [phoneNumber, setPhoneNumber] = useState('7');
+            const [phoneNumber, setPhoneNumber] = useState('');
             const [phoneError, setPhoneError] = useState('');
             const [shownCriterionIndex, setShownCriterionIndex] = useState(null);
             const [assignedMonth, setAssignedMonth] = useState(selectedMonth);
@@ -341,7 +341,7 @@
                     if (existingEvaluation) {
                         setScores(existingEvaluation.scores || []);
                         setCriterionComments(existingEvaluation.criterionComments || []);
-                        setPhoneNumber(existingEvaluation.phoneNumber || '7');
+                        setPhoneNumber(existingEvaluation.phoneNumber || '');
                         setAssignedMonth(existingEvaluation.assignedMonth || selectedMonth);
                         setIsDraft(existingEvaluation.isDraft || false);
                         setAudioUrl(existingEvaluation.audioUrl || null);
@@ -358,7 +358,7 @@
                         setCriterionComments(directions[0]?.criteria.map(() => '') || []);
                         setCallFile(null);
                         setAudioUrl(null);
-                        setPhoneNumber('7');
+                        setPhoneNumber('');
                         setAssignedMonth(selectedMonth);
                         setIsDraft(false);
                         setAppealDate('');
@@ -408,22 +408,13 @@
             };
 
             const handlePhoneChange = (e) => {
-                let value = e.target.value;
-                if (!value.startsWith('7')) {
-                    value = '7' + value.replace(/^7/, '');
-                }
-                value = value.replace(/[^0-9]/g, '');
-                if (value.length > 11) {
-                    value = value.slice(0, 11);
-                }
+                let value = e.target.value.replace(/[^0-9+]/g, ''); // оставить только цифры и +
                 setPhoneNumber(value);
 
-                if (value.length === 11 && value.startsWith('7')) {
+                if (value.length < 5) { // минимальная длина для валидации, можешь подкорректировать
+                    setPhoneError('Phone number is too short');
+                } else {
                     setPhoneError('');
-                } else if (value.length < 11) {
-                    setPhoneError('Phone number must be exactly 11 digits');
-                } else if (!value.startsWith('7')) {
-                    setPhoneError('Phone number must start with 7');
                 }
             };
 
@@ -450,8 +441,6 @@
 
             const isSubmitDisabled = directions.length === 0 ||
                 directions[0]?.criteria.length === 0 ||
-                phoneNumber.length !== 11 ||
-                !phoneNumber.startsWith('7') ||
                 (directions[0]?.hasFileUpload && !callFile && !audioUrl) ||
                 scores.some((score, index) => (score === 'Error' || score === 'Incorrect') && !criterionComments[index].trim());
 
@@ -606,8 +595,8 @@
                             type="text"
                             value={phoneNumber}
                             onChange={handlePhoneChange}
-                            placeholder="Enter phone number (starts with 7, 11 digits)"
-                            className={`w-full p-4 border rounded-lg focus:outline-none focus:ring-2 ${phoneNumber.length === 11 && phoneNumber.startsWith('7') ? 'focus:ring-primary border-muted/20' : 'focus:ring-red-500 border-red-300'} transition-all duration-300 bg-white text-text`}
+                            placeholder="Enter phone number"
+                            className={`w-full p-4 border rounded-lg focus:outline-none focus:ring-2 border-muted/20 transition-all duration-300 bg-white text-text`}
                         />
                         {phoneError && <p className="text-red-500 mt-2 text-base">{phoneError}</p>}
                         <label className="block mb-3 font-semibold text-text text-lg mt-8">Дата обращения</label>
@@ -1365,7 +1354,7 @@
                                 <SemicircleProgress
                                     value={parseFloat(averageScore.toFixed(2))}
                                     max={100}
-                                    label="Сред. балл"
+                                    label="Средний балл"
                                     color="#10B981"
                                 />
                             </div>
