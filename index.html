@@ -1432,7 +1432,7 @@
                                                     </td>
                                                     <td className="p-5 border-b text-base text-text">{call.selectedDirection || '-'}</td>
                                                     <td className="p-5 border-b text-base text-text">{call.phoneNumber || '-'}</td>
-                                                    <td className="p-5 border-b text-base text-text">{call.totalScore}</td>
+                                                    <td className="p-5 border-b text-base text-text">{call.totalScore != null ? Math.round(call.totalScore) : '-'}</td>
                                                     <td className="p-5 border-b text-base text-text">{call.appeal_date || '-'}</td>
                                                     <td className="p-5 border-b text-base flex items-center space-x-3">
                                                         {call.date}
