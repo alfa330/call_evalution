@@ -643,7 +643,7 @@
                                                         />
                                                     </svg>
                                                     <label className="text-base font-semibold text-text">
-                                                        {criterion.name} {criterion.isCritical ? '(Critical)' : `(${criterion.weight}%)`}
+                                                        {criterion.name} {criterion.isCritical ? '(Critical)' : `(${criterion.weight})`}
                                                     </label>
                                                 </div>
                                                 <button
@@ -1500,7 +1500,7 @@
                                                                                 {call.directions[0].criteria.map((criterion, critIndex) => (
                                                                                     <tr key={critIndex} className="hover:bg-background transition-all duration-300">
                                                                                         <td className="p-4 border-b text-base text-text">{criterion.name}</td>
-                                                                                        <td className="p-4 border-b text-base text-text">{criterion.isCritical ? '(Критический)' : `${criterion.weight}%`}</td>
+                                                                                        <td className="p-4 border-b text-base text-text">{criterion.isCritical ? '(Критический)' : `${criterion.weight}`}</td>
                                                                                         <td className="p-4 border-b text-base">
                                                                                             <span className={`${call.scores[critIndex] === 'Correct' || call.scores[critIndex] === 'N/A' ? 'text-secondary' : 'text-red-500'} font-medium`}>
                                                                                                 {call.scores[critIndex] || 'Correct'}
