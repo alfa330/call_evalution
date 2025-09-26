@@ -292,14 +292,14 @@
                                 type="text"
                                 value={login}
                                 onChange={(e) => setLogin(e.target.value)}
-                                placeholder="Enter your login"
+                                placeholder="Ваш логин"
                                 className="w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-background text-text"
                             />
                             <input
                                 type="password"
                                 value={password}
                                 onChange={(e) => setPassword(e.target.value)}
-                                placeholder="Enter your password"
+                                placeholder="Пароль"
                                 className="w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-background text-text"
                             />
                             <div className="flex justify-between">
@@ -595,7 +595,7 @@
                             type="text"
                             value={phoneNumber}
                             onChange={handlePhoneChange}
-                            placeholder="Enter phone number"
+                            placeholder="Введите номер телефона"
                             className={`w-full p-4 border rounded-lg focus:outline-none focus:ring-2 border-muted/20 transition-all duration-300 bg-white text-text`}
                         />
                         {phoneError && <p className="text-red-500 mt-2 text-base">{phoneError}</p>}
@@ -684,7 +684,7 @@
                                                 <textarea
                                                     value={criterionComments[index] || ''}
                                                     onChange={(e) => handleCommentChange(index, e.target.value)}
-                                                    placeholder={`Comment for ${criterion.name} (required)`}
+                                                    placeholder={`Комментарий для ${criterion.name} (обяз.)`}
                                                     className={`w-full p-4 border rounded-lg mt-4 focus:outline-none focus:ring-2 ${criterionComments[index]?.trim() ? 'border-muted/20 focus:ring-primary' : 'border-red-300 focus:ring-red-500'} animate-fade-in transition-all duration-300`}
                                                     rows={4}
                                                 />
