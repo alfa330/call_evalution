@@ -8,6 +8,7 @@
     <script src="https://cdn.jsdelivr.net/npm/react-dom@18.3.1/umd/react-dom.production.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@babel/standalone@7.25.6/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script>
         tailwind.config = {
             theme: {
@@ -328,6 +329,7 @@
             const [audioError, setAudioError] = useState(null);
             const [scores, setScores] = useState([]);
             const [criterionComments, setCriterionComments] = useState([]);
+            const [commentVisible, setCommentVisible] = useState([]); // <-- new state to control optional comment visibility per criterion
             const [phoneNumber, setPhoneNumber] = useState('');
             const [phoneError, setPhoneError] = useState('');
             const [shownCriterionIndex, setShownCriterionIndex] = useState(null);
@@ -341,6 +343,9 @@
                     if (existingEvaluation) {
                         setScores(existingEvaluation.scores || []);
                         setCriterionComments(existingEvaluation.criterionComments || []);
+                        // initialize commentVisible: true where there is existing comment
+                        const vis = (existingEvaluation.criterionComments || []).map(c => !!(c && c.trim()));
+                        setCommentVisible(vis.length ? vis : (directions[0]?.criteria.map(() => false) || []));
                         setPhoneNumber(existingEvaluation.phoneNumber || '');
                         setAssignedMonth(existingEvaluation.assignedMonth || selectedMonth);
                         setIsDraft(existingEvaluation.isDraft || false);
@@ -356,6 +361,7 @@
                     } else {
                         setScores(directions[0]?.criteria.map(() => 'Correct') || []);
                         setCriterionComments(directions[0]?.criteria.map(() => '') || []);
+                        setCommentVisible(directions[0]?.criteria.map(() => false) || []); // default: hidden
                         setCallFile(null);
                         setAudioUrl(null);
                         setPhoneNumber('');
@@ -390,21 +396,24 @@
                 setAudioError(null);
             };
 
+            // Updated: do not automatically clear comments on Correct/N/A — comments can be optional
             const handleScoreChange = (index, value) => {
                 const newScores = [...scores];
                 newScores[index] = value;
                 setScores(newScores);
-                if (value === 'Correct' || value === 'N/A') {
-                    const newComments = [...criterionComments];
-                    newComments[index] = '';
-                    setCriterionComments(newComments);
-                }
+                // keep existing comments intact; we only require comments for negative statuses (Error/Incorrect/Deficiency)
             };
 
             const handleCommentChange = (index, value) => {
                 const newComments = [...criterionComments];
                 newComments[index] = value;
                 setCriterionComments(newComments);
+            };
+
+            const handleToggleComment = (index) => {
+                const newVis = [...commentVisible];
+                newVis[index] = !newVis[index];
+                setCommentVisible(newVis);
             };
 
             const handlePhoneChange = (e) => {
@@ -679,13 +688,25 @@
                                                         d={scores[index] === 'Correct' || scores[index] === 'N/A' ? 'M5 13l4 4L19 7' : 'M6 18L18 6M6 6l12 12'}
                                                     />
                                                 </svg>
+
+                                                {/* Font Awesome comment button - visible always, allows optional comment even when Correct/N/A */}
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); handleToggleComment(index); }}
+                                                    className={`p-2 rounded hover:bg-primary/10 transition-colors duration-200 ${commentVisible[index] ? 'bg-primary/10' : ''}`}
+                                                    title="Оставить комментарий"
+                                                    type="button"
+                                                >
+                                                    <i className="fa-regular fa-comment-dots fa-lg"></i>
+                                                </button>
                                             </div>
-                                            {(scores[index] === 'Error' || scores[index] === 'Incorrect' || scores[index] === 'Deficiency') && (
+
+                                            {/* Show textarea when negative status (required) OR when user toggled the comment button (optional) */}
+                                            {(scores[index] === 'Error' || scores[index] === 'Incorrect' || scores[index] === 'Deficiency' || commentVisible[index]) && (
                                                 <textarea
                                                     value={criterionComments[index] || ''}
                                                     onChange={(e) => handleCommentChange(index, e.target.value)}
-                                                    placeholder={`Комментарий для ${criterion.name} (обяз.)`}
-                                                    className={`w-full p-4 border rounded-lg mt-4 focus:outline-none focus:ring-2 ${criterionComments[index]?.trim() ? 'border-muted/20 focus:ring-primary' : 'border-red-300 focus:ring-red-500'} animate-fade-in transition-all duration-300`}
+                                                    placeholder={`Комментарий для ${criterion.name} ${scores[index] === 'Error' || scores[index] === 'Incorrect' || scores[index] === 'Deficiency' ? '(обяз.)' : '(необязательно)'}`}
+                                                    className={`w-full p-4 border rounded-lg mt-4 focus:outline-none focus:ring-2 ${criterionComments[index]?.trim() ? 'border-muted/20 focus:ring-primary' : (scores[index] === 'Error' || scores[index] === 'Incorrect' || scores[index] === 'Deficiency' ? 'border-red-300 focus:ring-red-500' : 'border-muted/20 focus:ring-primary')} animate-fade-in transition-all duration-300`}
                                                     rows={4}
                                                 />
                                             )}
