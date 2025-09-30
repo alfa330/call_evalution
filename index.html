@@ -576,8 +576,9 @@
                 <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in">
                     <div className="bg-card p-10 rounded-xl shadow-hover w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-primary/10">
                         <h2 className="text-3xl font-bold mb-8 text-text">
-                            {existingEvaluation?.isReevaluation ? 'Re-evaluate Call' : existingEvaluation?.isDraft ? 'Edit Draft Evaluation' : 'Evaluate Call'} - Оператор: {operator?.name}
+                            {existingEvaluation?.isReevaluation ? 'Переоценка' : existingEvaluation?.isDraft ? 'Edit Draft Evaluation' : 'Оценка'} - Оператор: {operator?.name}
                         </h2>
+
                         {directions[0]?.hasFileUpload && (
                             <div className="mb-8 bg-background p-6 rounded-lg shadow-card">
                                 <label className="block mb-3 font-semibold text-text text-lg">Загрузить аудио звонка (Обяз.)</label>
@@ -599,23 +600,33 @@
                                 {audioError && <p className="text-red-500 mt-3 text-base">{audioError}</p>}
                             </div>
                         )}
-                        <label className="block mb-3 font-semibold text-text text-lg">Номер телефона</label>
-                        <input
-                            type="text"
-                            value={phoneNumber}
-                            onChange={handlePhoneChange}
-                            placeholder="Введите номер телефона"
-                            className={`w-full p-4 border rounded-lg focus:outline-none focus:ring-2 border-muted/20 transition-all duration-300 bg-white text-text`}
-                        />
-                        {phoneError && <p className="text-red-500 mt-2 text-base">{phoneError}</p>}
-                        <label className="block mb-3 font-semibold text-text text-lg mt-8">Дата обращения</label>
-                        <input
-                            type="text"
-                            value={appealDate}
-                            onChange={handleAppealDateChange}
-                            placeholder="DD-MM-YYYY HH:MM:SS"
-                            className="w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text"
-                        />
+
+                        {/* PHONE + APPEAL DATE IN ONE ROW (phone = 75%, date = 25%) */}
+                        <div className="flex flex-col md:flex-row md:items-start gap-4">
+                            <div className="w-full md:w-3/4">
+                                <label className="block mb-3 font-semibold text-text text-lg">Номер телефона</label>
+                                <input
+                                    type="text"
+                                    value={phoneNumber}
+                                    onChange={handlePhoneChange}
+                                    placeholder="Введите номер телефона"
+                                    className={`w-full p-4 border rounded-lg focus:outline-none focus:ring-2 border-muted/20 transition-all duration-300 bg-white text-text`}
+                                />
+                                {phoneError && <p className="text-red-500 mt-2 text-base">{phoneError}</p>}
+                            </div>
+
+                            <div className="w-full md:w-1/4">
+                                <label className="block mb-3 font-semibold text-text text-lg">Дата обращения</label>
+                                <input
+                                    type="text"
+                                    value={appealDate}
+                                    onChange={handleAppealDateChange}
+                                    placeholder="DD-MM-YYYY HH:MM:SS"
+                                    className="w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text"
+                                />
+                            </div>
+                        </div>
+
                         <label className="block mb-3 font-semibold text-text text-lg mt-8">Критерии оценивания</label>
                         {directions.length === 0 || directions[0]?.criteria.length === 0 ? (
                             <p className="text-red-500 text-base">У направления нет критериев.</p>
@@ -660,19 +671,19 @@
                                                     onChange={(e) => handleScoreChange(index, e.target.value)}
                                                     className={`w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 ${scores[index] === 'Correct' || scores[index] === 'N/A' ? 'bg-green-50' : 'bg-red-50'}`}
                                                 >
-                                                  <option value="Correct" className="bg-green-50">Корректно</option>
-                                                  <option value="N/A" className="bg-green-50">N/A</option>
-                                                  {!criterion.isCritical && (
+                                                <option value="Correct" className="bg-green-50">Корректно</option>
+                                                <option value="N/A" className="bg-green-50">N/A</option>
+                                                {!criterion.isCritical && (
                                                     <>
-                                                      <option value="Incorrect" className="bg-red-50">Ошибка</option>
-                                                      {criterion.deficiency && (
+                                                    <option value="Incorrect" className="bg-red-50">Ошибка</option>
+                                                    {criterion.deficiency && (
                                                         <option value="Deficiency" className="bg-yellow-50">Недочет</option>
-                                                      )}
+                                                    )}
                                                     </>
-                                                  )}
-                                                  {criterion.isCritical && (
+                                                )}
+                                                {criterion.isCritical && (
                                                     <option value="Error" className="bg-red-50">Error</option>
-                                                  )}
+                                                )}
                                                 </select>
                                                 <svg
                                                     className={`w-7 h-7 ${scores[index] === 'Correct' || scores[index] === 'N/A' ? 'text-secondary' : 'text-red-500'}`}
@@ -715,6 +726,7 @@
                                 </div>
                             </div>
                         )}
+
                         <p className="mt-6 text-base font-semibold text-text">
                             Total Score: {
                                 directions[0]?.criteria.some((criterion, index) => 
@@ -725,6 +737,7 @@
                                 }, 0)}/100`
                             }
                         </p>
+
                         {shownCriterionIndex !== null && (
                             <div className="fixed top-0 right-0 w-96 h-full bg-card shadow-hover border-l border-muted/20 z-50 p-8 animate-slide-in">
                                 <div className="flex justify-between items-center mb-6">
@@ -744,6 +757,7 @@
                                 </p>
                             </div>
                         )}
+
                         <div className="flex justify-end mt-8 space-x-4">
                             {existingEvaluation?.isDraft && (
                                 <button
