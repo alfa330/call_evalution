@@ -1174,25 +1174,40 @@
                                 return {
                                     id: evaluation.id,
                                     fileName: `Call ${evaluation.phone_number}`,
-                                    totalScore: evaluation.score.toFixed(2),
-                                    date: evaluation.evaluation_date.split('T')[0],
+                                    totalScore: evaluation.score != null ? parseFloat(evaluation.score).toFixed(2) : null,
+                                    // evaluation.evaluation_date может быть в разном формате; защитимся:
+                                    date: evaluation.evaluation_date ? (evaluation.evaluation_date.split('T')[0] || evaluation.evaluation_date) : '',
                                     phoneNumber: evaluation.phone_number,
                                     combinedComment: evaluation.comment,
-                                    appeal_date: evaluation.appeal_date || '-', 
-                                    selectedDirection: evaluation.direction?.name || selectedOperator.direction,
+                                    appeal_date: evaluation.appeal_date || '-',
+                                    selectedDirection: evaluation.direction?.name || selectedOperator?.direction || '-',
                                     directions: [{
-                                        name: evaluation.direction?.name || selectedOperator.direction,
-                                        hasFileUpload: evaluation.direction?.hasFileUpload || true,
-                                        criteria: evaluation.direction?.criteria || []
+                                    name: evaluation.direction?.name || selectedOperator?.direction || '-',
+                                    hasFileUpload: evaluation.direction?.hasFileUpload ?? true,
+                                    criteria: evaluation.direction?.criteria || []
                                     }],
                                     scores: evaluation.scores || [],
                                     criterionComments: evaluation.criterion_comments || [],
                                     audioUrl,
                                     isDraft: evaluation.is_draft,
                                     assignedMonth: evaluation.month,
-                                    isCorrection: evaluation.is_correction || false
+                                    isCorrection: evaluation.is_correction || false,
+
+                                    /* --- sv_request fields (IMPORTANT) --- */
+                                    sv_request: !!evaluation.sv_request,
+                                    sv_request_comment: evaluation.sv_request_comment || null,
+                                    sv_request_by: evaluation.sv_request_by || null,
+                                    sv_request_by_name: evaluation.sv_request_by_name || null,
+                                    sv_request_at: evaluation.sv_request_at || null,
+                                    sv_request_approved: !!evaluation.sv_request_approved,
+                                    sv_request_approved_by: evaluation.sv_request_approved_by || null,
+                                    sv_request_approved_by_name: evaluation.sv_request_approved_by_name || null,
+                                    sv_request_approved_at: evaluation.sv_request_approved_at || null,
+
+                                    // (опционально) сохраняем raw evaluation на случай отладки
+                                    _rawEvaluation: evaluation
                                 };
-                            }));
+                                }));
                             setCalls(updatedCalls);
                         }
                     } catch (err) {
@@ -1303,35 +1318,45 @@
                 );
                 const data = await response.json();
                 if (data.status === 'success') {
-                const updatedCalls = await Promise.all(
-                    data.evaluations.map(async (evaluation) => {
+                const updatedCalls = await Promise.all(data.evaluations.map(async (evaluation) => {
                     let audioUrl = null;
                     return {
                         id: evaluation.id,
                         fileName: `Call ${evaluation.phone_number}`,
-                        totalScore: evaluation.score.toFixed(2),
-                        date: evaluation.evaluation_date.split('T')[0],
+                        totalScore: evaluation.score != null ? parseFloat(evaluation.score).toFixed(2) : null,
+                        // evaluation.evaluation_date может быть в разном формате; защитимся:
+                        date: evaluation.evaluation_date ? (evaluation.evaluation_date.split('T')[0] || evaluation.evaluation_date) : '',
                         phoneNumber: evaluation.phone_number,
                         combinedComment: evaluation.comment,
-                        appeal_date: evaluation.appeal_date || '-', 
-                        selectedDirection:
-                        evaluation.direction?.name || selectedOperator.direction,
-                        directions: [
-                        {
-                            name: evaluation.direction?.name || selectedOperator.direction,
-                            hasFileUpload: evaluation.direction?.hasFileUpload || true,
-                            criteria: evaluation.direction?.criteria || [],
-                        },
-                        ],
+                        appeal_date: evaluation.appeal_date || '-',
+                        selectedDirection: evaluation.direction?.name || selectedOperator?.direction || '-',
+                        directions: [{
+                        name: evaluation.direction?.name || selectedOperator?.direction || '-',
+                        hasFileUpload: evaluation.direction?.hasFileUpload ?? true,
+                        criteria: evaluation.direction?.criteria || []
+                        }],
                         scores: evaluation.scores || [],
                         criterionComments: evaluation.criterion_comments || [],
                         audioUrl,
                         isDraft: evaluation.is_draft,
                         assignedMonth: evaluation.month,
                         isCorrection: evaluation.is_correction || false,
+
+                        /* --- sv_request fields (IMPORTANT) --- */
+                        sv_request: !!evaluation.sv_request,
+                        sv_request_comment: evaluation.sv_request_comment || null,
+                        sv_request_by: evaluation.sv_request_by || null,
+                        sv_request_by_name: evaluation.sv_request_by_name || null,
+                        sv_request_at: evaluation.sv_request_at || null,
+                        sv_request_approved: !!evaluation.sv_request_approved,
+                        sv_request_approved_by: evaluation.sv_request_approved_by || null,
+                        sv_request_approved_by_name: evaluation.sv_request_approved_by_name || null,
+                        sv_request_approved_at: evaluation.sv_request_approved_at || null,
+
+                        // (опционально) сохраняем raw evaluation на случай отладки
+                        _rawEvaluation: evaluation
                     };
-                    })
-                );
+                    }));
                 setCalls(updatedCalls);
                 }
             } catch (err) {
