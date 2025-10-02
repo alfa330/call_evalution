@@ -968,6 +968,10 @@
                                 id: tokenData.operatorId,
                                 name: tokenData.operatorName
                             });
+                            if (tokenData.month) {
+                            // ожидаемый формат: 'YYYY-MM'
+                            setSelectedMonth(tokenData.month);
+                            }
                             if (tokenData.supervisorId) {
                                 setSelectedSupervisor(tokenData.supervisorId);
                             }
