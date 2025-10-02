@@ -1574,12 +1574,16 @@
 
                                                     {/* SvRequestButton — для супервайзера (использует apiKey, userId и fetchEvaluations в вашем файле) */}
                                                     <SvRequestButton
-                                                        call={call}
-                                                        apiKey={apiKey}             // в вашем файле переменная с apiKey, как в useEffect
-                                                        userId={userId}             // переменная с userId
-                                                        userRole={userRole}         // переменная с ролью
-                                                        API_BASE_URL={API_BASE_URL} // ваша константа с бэкендом
-                                                        fetchEvaluations={() => fetchEvaluations ? fetchEvaluations() : null} // замените имя, если ваша функция называется иначе
+                                                    call={call}
+                                                    apiKey={apiKey}
+                                                    userId={userId}
+                                                    userRole={userRole}
+                                                    API_BASE_URL={API_BASE_URL}
+                                                    fetchEvaluations={() => fetchEvaluations()}
+                                                    openEvaluationModal={() => {
+                                                        setEditingEvaluation({ ...call, isReevaluation: true, previous_version_id: call.id });
+                                                        setShowEvaluationModal(true);
+                                                    }}
                                                     />
 
                                                     {/* Существующие admin-кнопки (оставляем, но показываем только для admin) */}
@@ -1623,6 +1627,27 @@
                                                             </button>
                                                             )}
                                                         </>
+                                                    )}
+                                                    {/* Супервайзер: кнопка Переоценить появится если админ одобрил */}
+                                                    {userRole === 'sv' && call.sv_request_approved && (
+                                                    <button
+                                                        onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        // подготовим данные для модалки как переоценка
+                                                        setEditingEvaluation({
+                                                            ...call,
+                                                            isReevaluation: true,
+                                                            previous_version_id: call.id  // убедитесь, что modal использует это поле
+                                                        });
+                                                        // установим флаг isCorrection, чтобы backend получил is_correction=true
+                                                        // вы отправляете is_correction через formData при submit — modal должен это подставлять
+                                                        setShowEvaluationModal(true);
+                                                        }}
+                                                        className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 text-sm transition-all duration-300 font-medium ml-2"
+                                                        title="Переоценить звонок"
+                                                    >
+                                                        Переоценить
+                                                    </button>
                                                     )}
                                                     </td>
                                                 </tr>
