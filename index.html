@@ -429,14 +429,16 @@
 
             const formatAppealDate = (input) => {
                 let digits = input.replace(/\D/g, "");
-                if (digits.length > 14) digits = digits.slice(0, 14);
+                const hasFileUpload = directions[0]?.hasFileUpload;
+                const maxLength = hasFileUpload ? 14 : 12; // 14 digits for full datetime with seconds, 12 without seconds
+                if (digits.length > maxLength) digits = digits.slice(0, maxLength);
                 let formatted = "";
                 if (digits.length > 0) formatted += digits.slice(0, 2); // DD
                 if (digits.length > 2) formatted += "-" + digits.slice(2, 4); // MM
                 if (digits.length > 4) formatted += "-" + digits.slice(4, 8); // YYYY
                 if (digits.length > 8) formatted += " " + digits.slice(8, 10); // HH
                 if (digits.length > 10) formatted += ":" + digits.slice(10, 12); // mm
-                if (digits.length > 12) formatted += ":" + digits.slice(12, 14); // ss
+                if (hasFileUpload && digits.length > 12) formatted += ":" + digits.slice(12, 14); // ss only for file upload cases
                 return formatted;
             };
 
@@ -456,8 +458,12 @@
             const getAppealDate = () => {
                 if (!appealDate) return null;
                 let digits = appealDate.replace(/\D/g, "");
-                if (digits.length !== 14) return null;
-                return `${digits.slice(4,8)}-${digits.slice(2,4)}-${digits.slice(0,2)}T${digits.slice(8,10)}:${digits.slice(10,12)}:${digits.slice(12,14)}`;
+                const hasFileUpload = directions[0]?.hasFileUpload;
+                const requiredLength = hasFileUpload ? 14 : 12;
+                if (digits.length !== requiredLength) return null;
+                // For cases without file upload, add "00" for seconds
+                const seconds = hasFileUpload ? digits.slice(12,14) : "00";
+                return `${digits.slice(4,8)}-${digits.slice(2,4)}-${digits.slice(0,2)}T${digits.slice(8,10)}:${digits.slice(10,12)}:${seconds}`;
             };
 
             const handleSubmit = async (saveAsDraft = false) => {
