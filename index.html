@@ -341,6 +341,18 @@
             useEffect(() => {
                 if (isOpen) {
                     if (existingEvaluation) {
+                        if (existingEvaluation.is_imported) {
+                            // Для импортированных: только базовые поля
+                            setPhoneNumber(existingEvaluation.phoneNumber || '');
+                            setAppealDate(existingEvaluation.appeal_date ? formatAppealDate(existingEvaluation.appeal_date) : '');  // Используйте вашу функцию formatAppealDate
+                            setScores(directions[0]?.criteria.map(() => 'Correct') || []);
+                            setCriterionComments(directions[0]?.criteria.map(() => '') || []);
+                            setCommentVisible(directions[0]?.criteria.map(() => false) || []);
+                            setAssignedMonth(selectedMonth);
+                            setIsDraft(false);
+                            setAudioUrl(null);
+                            setPhoneError('');
+                        } else{
                         setScores(existingEvaluation.scores || []);
                         setCriterionComments(existingEvaluation.criterionComments || []);
                         // initialize commentVisible: true where there is existing comment
@@ -358,7 +370,7 @@
                         } else {
                             setAppealDate('');
                         }
-                    } else {
+                    }} else {
                         setScores(directions[0]?.criteria.map(() => 'Correct') || []);
                         setCriterionComments(directions[0]?.criteria.map(() => '') || []);
                         setCommentVisible(directions[0]?.criteria.map(() => false) || []); // default: hidden
@@ -1678,8 +1690,20 @@
                                                     <td className="p-5 border-b text-base flex items-center space-x-3">
                                                     {/* дата */}
                                                     <span>{call.date}</span>
-
-                                                    {/* SvRequestButton — для супервайзера (использует apiKey, userId и fetchEvaluations в вашем файле) */}
+                                                    {call.is_imported ? (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    setEditingEvaluation(call);  // Передаём call с предзаполненными phoneNumber и appealDate
+                                                                    setShowEvaluationModal(true);
+                                                                }}
+                                                                className="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary/90 text-sm transition-all duration-300 font-medium ml-2"
+                                                                title="Оценить импортированный звонок"
+                                                            >
+                                                                Оценить
+                                                            </button>
+                                                        ) :(
+                                                    <>
                                                     <SvRequestButton
                                                     call={call}
                                                     apiKey={apiKey}
@@ -1734,6 +1758,8 @@
                                                             </button>
                                                             )}
                                                         </>
+                                                    )}
+                                                    </>
                                                     )}
                                                     </td>
                                                 </tr>
