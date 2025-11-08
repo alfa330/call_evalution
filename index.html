@@ -337,12 +337,36 @@
             const [isDraft, setIsDraft] = useState(false);
             const [isSubmitting, setIsSubmitting] = useState(false);
             const [appealDate, setAppealDate] = useState('');
+            const [expectedDuration, setExpectedDuration] = useState(null);
+            const [actualDuration, setActualDuration] = useState(null);
+            const [durationMismatch, setDurationMismatch] = useState(false);
+
+            // tolerance constants (adjustable)
+            const MIN_TOLERANCE_SEC = 3;
+            const PERCENT_TOLERANCE = 0.15;
+
+            // helper to format seconds -> mm:ss or hh:mm:ss
+            const formatSeconds = (secs) => {
+                if (secs === null || secs === undefined || isNaN(secs)) return '—';
+                const total = Math.round(secs);
+                const h = Math.floor(total / 3600);
+                const m = Math.floor((total % 3600) / 60);
+                const s = total % 60;
+                if (h > 0) return `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+                return `${m}:${String(s).padStart(2,'0')}`;
+            };
 
             useEffect(() => {
                 if (isOpen) {
                     if (existingEvaluation) {
                         if (existingEvaluation.is_imported) {
                             // Для импортированных: только базовые поля
+                            const ed = existingEvaluation.duration || (existingEvaluation._rawEvaluation && existingEvaluation._rawEvaluation.duration) || null;
+                            setExpectedDuration(ed ? parseFloat(ed) : null);
+
+                            // reset actual duration check when opening modal
+                            setActualDuration(null);
+                            setDurationMismatch(false);
                             setPhoneNumber(existingEvaluation.phoneNumber || '');
                             const date = new Date(existingEvaluation.appeal_date);
                             const formatted = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
@@ -408,6 +432,44 @@
                 const newAudioUrl = file ? URL.createObjectURL(file) : null;
                 setAudioUrl(newAudioUrl);
                 setAudioError(null);
+                setActualDuration(null);
+                setDurationMismatch(false);
+
+                if (file && newAudioUrl) {
+                    try {
+                        const audio = new Audio(newAudioUrl);
+                        // если уже был ранее — сбросим src при завершении (чистка)
+                        const onLoaded = () => {
+                            const dur = audio.duration; // seconds (float)
+                            setActualDuration(dur);
+                            if (expectedDuration && !Number.isNaN(parseFloat(expectedDuration))) {
+                                const allowed = Math.max(MIN_TOLERANCE_SEC, expectedDuration * PERCENT_TOLERANCE);
+                                if (Math.abs(dur - expectedDuration) > allowed) {
+                                    setDurationMismatch(true);
+                                    setAudioError(`Длительность файла (${formatSeconds(dur)}) отличается от ожидаемой (${formatSeconds(expectedDuration)})`);
+                                } else {
+                                    setDurationMismatch(false);
+                                }
+                            } else {
+                                // если ожидаемая длительность отсутствует — не помечаем как mismatch
+                                setDurationMismatch(false);
+                            }
+                            // cleanup
+                            audio.removeEventListener('loadedmetadata', onLoaded);
+                        };
+                        const onError = () => {
+                            setAudioError('Не удалось прочитать аудио-файл');
+                            audio.removeEventListener('error', onError);
+                        };
+                        audio.addEventListener('loadedmetadata', onLoaded);
+                        audio.addEventListener('error', onError);
+                        // start загрузка метаданных
+                        audio.load();
+                    } catch (err) {
+                        console.error('audio duration check error', err);
+                        setAudioError('Ошибка при проверке длительности аудио');
+                    }
+                }
             };
 
             // Updated: do not automatically clear comments on Correct/N/A — comments can be optional
@@ -467,7 +529,8 @@
             const isSubmitDisabled = directions.length === 0 ||
                 directions[0]?.criteria.length === 0 ||
                 (directions[0]?.hasFileUpload && !callFile && !audioUrl) ||
-                scores.some((score, index) => (score === 'Error' || score === 'Incorrect') && !criterionComments[index].trim());
+                scores.some((score, index) => (score === 'Error' || score === 'Incorrect') && !criterionComments[index].trim()) ||
+                durationMismatch;
 
             const getAppealDate = () => {
                 if (!appealDate) return null;
@@ -618,6 +681,18 @@
                                     </div>
                                 )}
                                 {audioError && <p className="text-red-500 mt-3 text-base">{audioError}</p>}
+                                {(expectedDuration || actualDuration) && (
+                                    <div className="mt-2 text-sm text-gray-600">
+                                        Ожидаемая длительность: <strong>{expectedDuration ? formatSeconds(expectedDuration) : '—'}</strong>
+                                        {' • '}
+                                        Фактическая длительность: <strong>{actualDuration ? formatSeconds(actualDuration) : (audioUrl || callFile ? 'проверяется...' : '—')}</strong>
+                                    </div>
+                                )}
+                                {durationMismatch && (
+                                    <div className="mt-2 text-sm text-red-600">
+                                        Файл не соответствует ожидаемой длительности — загрузите правильный файл или проверьте данные импорта.
+                                    </div>
+                                )}
                             </div>
                         )}
 
