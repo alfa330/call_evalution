@@ -344,7 +344,7 @@
                         if (existingEvaluation.is_imported) {
                             // Для импортированных: только базовые поля
                             setPhoneNumber(existingEvaluation.phoneNumber || '');
-                            setAppealDate(existingEvaluation.appeal_date ? formatAppealDate(existingEvaluation.appeal_date) : '');  // Используйте вашу функцию formatAppealDate
+                            setAppealDate(existingEvaluation.appeal_date ? existingEvaluation.appeal_date : '');  // Используйте вашу функцию formatAppealDate
                             setScores(directions[0]?.criteria.map(() => 'Correct') || []);
                             setCriterionComments(directions[0]?.criteria.map(() => '') || []);
                             setCommentVisible(directions[0]?.criteria.map(() => false) || []);
