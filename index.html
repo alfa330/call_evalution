@@ -1670,8 +1670,8 @@
                                         {displayedCalls.map((call, index) => (
                                             <React.Fragment key={call.id}>
                                                 <tr 
-                                                    className={`hover:bg-background transition-all duration-300 cursor-pointer ${call.isDraft ? 'bg-yellow-50' : 'bg-green-50'} ${expandedDetails === call.id ? 'bg-primary/20' : ''}`}
-                                                    onClick={() => handleSelectCall(call.id)}
+                                                    className={`${!call.is_imported ? 'hover:bg-background cursor-pointer' : ''} transition-all duration-300 ${call.is_imported ? 'bg-yellow-50' : 'bg-green-50'} ${expandedDetails === call.id ? 'bg-primary/20' : ''}`}
+                                                    onClick={!call.is_imported ? () => handleSelectCall(call.id) : null}
                                                 >
                                                     <td className="p-5 border-b text-base font-medium text-text">{index + 1}</td>
                                                     <td className="p-5 border-b text-base">
@@ -1681,8 +1681,8 @@
                                                                 <span className="text-muted">Загрузка...</span>
                                                             </div>
                                                         ) : (
-                                                            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${call.isDraft ? 'bg-accent/20 text-accent' : 'bg-secondary/20 text-secondary'}`}>
-                                                                {call.isDraft ? 'Черновик' : 'Загружен'}
+                                                            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${call.is_imported ? 'bg-accent/20 text-accent' : 'bg-secondary/20 text-secondary'}`}>
+                                                                {call.is_imported ? 'Не оценен' : 'Загружен'}
                                                             </span>
                                                         )}
                                                     </td>
