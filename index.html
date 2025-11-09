@@ -397,6 +397,9 @@
                             setAppealDate('');
                         }
                     }} else {
+                        setExpectedDuration(null);
+                        setActualDuration(null);
+                        setDurationMismatch(false);
                         setScores(directions[0]?.criteria.map(() => 'Correct') || []);
                         setCriterionComments(directions[0]?.criteria.map(() => '') || []);
                         setCommentVisible(directions[0]?.criteria.map(() => false) || []); // default: hidden
