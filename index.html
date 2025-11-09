@@ -1609,11 +1609,16 @@
                 displayedCalls = displayedCalls.filter(call => call.date.slice(0,7) !== selectedMonth);
             }
             const hasExtra = callsByMonth.filter(call => call.date.slice(0,7) !== selectedMonth).length > 0;
-            const isMaxEvaluationsReached = callsByMonth.filter(c => !c.isDraft).length >= MAX_EVALUATIONS;
-            const evaluationCount = displayedCalls.filter(c => !c.isDraft).length;
-            const averageScore = evaluationCount > 0 
+            const isMaxEvaluationsReached =
+            callsByMonth.filter(c => !c.isDraft && !c.is_imported).length >= MAX_EVALUATIONS;
+
+            const evaluationCount =
+            displayedCalls.filter(c => !c.isDraft && !c.is_imported).length;
+
+            const averageScore =
+            evaluationCount > 0
                 ? displayedCalls
-                    .filter(c => !c.isDraft)
+                    .filter(c => !c.isDraft && !c.is_imported)
                     .reduce((sum, call) => sum + parseFloat(call.totalScore), 0) / evaluationCount
                 : 0;
 
