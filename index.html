@@ -668,7 +668,7 @@
                             {existingEvaluation?.isReevaluation ? 'Переоценка' : existingEvaluation?.isDraft ? 'Edit Draft Evaluation' : 'Оценка'} - Оператор: {operator?.name}
                         </h2>
 
-                        {directions[0]?.hasFileUpload && (
+                        {directions[0]?.hasFileUpload && !existingEvaluation?.isReevaluation && (
                             <div className="mb-8 bg-background p-6 rounded-lg shadow-card">
                                 <label className="block mb-3 font-semibold text-text text-lg">Загрузить аудио звонка (Обяз.)</label>
                                 <input
