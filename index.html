@@ -668,15 +668,20 @@
                             {existingEvaluation?.isReevaluation ? 'Переоценка' : existingEvaluation?.isDraft ? 'Edit Draft Evaluation' : 'Оценка'} - Оператор: {operator?.name}
                         </h2>
 
-                        {directions[0]?.hasFileUpload && !existingEvaluation?.isReevaluation && (
+                        {directions[0]?.hasFileUpload && (
                             <div className="mb-8 bg-background p-6 rounded-lg shadow-card">
-                                <label className="block mb-3 font-semibold text-text text-lg">Загрузить аудио звонка (Обяз.)</label>
-                                <input
-                                    type="file"
-                                    accept="audio/*"
-                                    onChange={handleFileChange}
-                                    className="w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text"
-                                />
+                                {!existingEvaluation?.isReevaluation && (
+                                    <>
+                                    <label className="block mb-3 font-semibold text-text text-lg">Загрузить аудио звонка (Обяз.)</label>
+                                    <input
+                                        type="file"
+                                        accept="audio/*"
+                                        onChange={handleFileChange}
+                                        className="w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text"
+                                    />
+                                    </>
+                                )
+                                }
                                 {audioUrl && (
                                     <div className="sticky top-0 z-10 bg-card p-4 border-b border-muted/20 mt-6 rounded-lg shadow-card">
                                         <label className="block mb-3 font-semibold text-text text-lg">Прослушать звонок</label>
