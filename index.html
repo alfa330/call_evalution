@@ -381,6 +381,8 @@
                         } else{
                         setScores(existingEvaluation.scores || []);
                         setCriterionComments(existingEvaluation.criterionComments || []);
+                        setActualDuration(null);
+                        setDurationMismatch(false);
                         // initialize commentVisible: true where there is existing comment
                         const vis = (existingEvaluation.criterionComments || []).map(c => !!(c && c.trim()));
                         setCommentVisible(vis.length ? vis : (directions[0]?.criteria.map(() => false) || []));
