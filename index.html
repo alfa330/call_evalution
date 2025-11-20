@@ -1452,7 +1452,19 @@
                 assignedMonth: evaluationData.assignedMonth,
                 direction_id: selectedOperator.direction_id,
                 isCorrection: evaluationData.isCorrection,
-                appeal_date: evaluationData.appeal_date 
+                appeal_date: evaluationData.appeal_date,
+                // preserve import flag so UI knows to show "Оценить" for imported calls
+                is_imported: evaluationData.is_imported || false,
+                // preserve sv_request fields if modal provided them (defaults false/null)
+                sv_request: evaluationData.sv_request || false,
+                sv_request_comment: evaluationData.sv_request_comment || null,
+                sv_request_by: evaluationData.sv_request_by || null,
+                sv_request_by_name: evaluationData.sv_request_by_name || null,
+                sv_request_at: evaluationData.sv_request_at || null,
+                sv_request_approved: evaluationData.sv_request_approved || false,
+                sv_request_approved_by: evaluationData.sv_request_approved_by || null,
+                sv_request_approved_by_name: evaluationData.sv_request_approved_by_name || null,
+                sv_request_approved_at: evaluationData.sv_request_approved_at || null
                 };
 
                 // Если это переоценка, удаляем старую версию с тем же ID или связанную через previous_version_id
