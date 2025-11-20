@@ -1102,7 +1102,7 @@
                     <>
                         <button
                         onClick={(e) => { e.stopPropagation(); setShowModal(true); }}
-                        className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-primary/90 text-sm transition-all duration-300 font-medium ml-2"
+                        className="bg-yellow-500 text-white px-4 py-2 rounded-lg hover:bg-primary/90 text-sm transition-all duration-300 font-medium ml-2 min-w-[92px] whitespace-nowrap h-9 flex items-center justify-center"
                         disabled={loading}
                         >
                         Запрос
@@ -1227,7 +1227,7 @@
                         // вы отправляете is_correction через formData при submit — modal должен это подставлять
                         setShowEvaluationModal(true);
                         }}
-                        className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 text-sm transition-all duration-300 font-medium ml-2"
+                        className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 text-sm transition-all duration-300 font-medium ml-2 min-w-[92px] whitespace-nowrap h-9 flex items-center justify-center"
                         title="Переоценить звонок"
                         >
                         Переоценить
@@ -1793,80 +1793,84 @@
                                                     <td className="p-5 border-b text-base text-text">{call.phoneNumber || '-'}</td>
                                                     <td className="p-5 border-b text-base text-text">{call.totalScore != null ? Math.round(call.totalScore) : '-'}</td>
                                                     <td className="p-5 border-b text-base text-text">{call.appeal_date || '-'}</td>
-                                                    <td className="p-5 border-b text-base flex items-center space-x-3">
-                                                    {/* дата */}
-                                                    <span>{call.date}</span>
-                                                    {call.is_imported ? (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    setEditingEvaluation(call);  // Передаём call с предзаполненными phoneNumber и appealDate
-                                                                    setShowEvaluationModal(true);
-                                                                }}
-                                                                className="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary/90 text-sm transition-all duration-300 font-medium ml-2"
-                                                                title="Оценить импортированный звонок"
-                                                            >
-                                                                Оценить
-                                                            </button>
-                                                        ) :(
-                                                    <>
-                                                    <SvRequestButton
-                                                    call={call}
-                                                    apiKey={apiKey}
-                                                    userId={userId}
-                                                    userRole={userRole}
-                                                    API_BASE_URL={API_BASE_URL}
-                                                    fetchEvaluations={() => fetchEvaluations()}
-                                                    openEvaluationModal={() => {
-                                                        setEditingEvaluation({ ...call, isReevaluation: true, previous_version_id: call.id });
-                                                        setShowEvaluationModal(true);
-                                                    }}
-                                                    />
+                                                    <td className="p-5 border-b text-base text-text">
+                                                        <div className="flex items-center justify-between">
+                                                            <span className="mr-4">{call.date}</span>
+                                                            {/* reserve fixed width on the right for action buttons so table doesn't reflow */}
+                                                            <div className="flex-shrink-0 w-64 flex items-center justify-end space-x-3">
+                                                                {call.is_imported ? (
+                                                                    <button
+                                                                        onClick={(e) => {
+                                                                            e.stopPropagation();
+                                                                            setEditingEvaluation(call);  // Передаём call с предзаполненными phoneNumber и appealDate
+                                                                            setShowEvaluationModal(true);
+                                                                        }}
+                                                                        className="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary/90 text-sm transition-all duration-300 font-medium ml-2 min-w-[88px] whitespace-nowrap h-9 flex items-center justify-center"
+                                                                        title="Оценить импортированный звонок"
+                                                                    >
+                                                                        Оценить
+                                                                    </button>
+                                                                ) : (
+                                                                    <>
+                                                                        <SvRequestButton
+                                                                            call={call}
+                                                                            apiKey={apiKey}
+                                                                            userId={userId}
+                                                                            userRole={userRole}
+                                                                            API_BASE_URL={API_BASE_URL}
+                                                                            fetchEvaluations={() => fetchEvaluations()}
+                                                                            openEvaluationModal={() => {
+                                                                                setEditingEvaluation({ ...call, isReevaluation: true, previous_version_id: call.id });
+                                                                                setShowEvaluationModal(true);
+                                                                            }}
+                                                                        />
 
-                                                    {/* Существующие admin-кнопки (оставляем, но показываем только для admin) */}
-                                                    {userRole === 'admin' && !call.isDraft && (
-                                                        <>
-                                                            <button
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                setEditingEvaluation({ ...call, isReevaluation: true });
-                                                                setShowEvaluationModal(true);
-                                                            }}
-                                                            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 text-sm transition-all duration-300 font-medium"
-                                                            title="Переоценить звонок/чат"
-                                                            >
-                                                            Переоценить
-                                                            </button>
-                                                            {call.isCorrection && (
-                                                            <button
-                                                                onClick={async (e) => {
-                                                                e.stopPropagation();
-                                                                try {
-                                                                    const response = await fetch(`${API_BASE_URL}/api/call_versions/${call.id}`, {
-                                                                    headers: {
-                                                                        'X-API-Key': apiKey,
-                                                                        'X-User-Id': userId
-                                                                    }
-                                                                    });
-                                                                    const data = await response.json();
-                                                                    if (data.status === 'success') {
-                                                                    setVersionHistory(data.versions);
-                                                                    setShowVersionsModal(true);
-                                                                    }
-                                                                } catch (err) {
-                                                                    console.error('Error fetching versions:', err);
-                                                                }
-                                                                }}
-                                                                className="bg-accent text-white px-4 py-2 rounded-lg hover:bg-accent/90 text-sm transition-all duration-300 font-medium"
-                                                                title="View version history"
-                                                            >
-                                                                Посмотреть истроию
-                                                            </button>
-                                                            )}
-                                                        </>
-                                                    )}
-                                                    </>
-                                                    )}
+                                                                        {/* Существующие admin-кнопки (оставляем, но показываем только для admin) */}
+                                                                        {userRole === 'admin' && !call.isDraft && (
+                                                                            <>
+                                                                                <button
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        setEditingEvaluation({ ...call, isReevaluation: true });
+                                                                                        setShowEvaluationModal(true);
+                                                                                    }}
+                                                                                    className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90 text-sm transition-all duration-300 font-medium min-w-[92px] whitespace-nowrap h-9 flex items-center justify-center"
+                                                                                    title="Переоценить звонок/чат"
+                                                                                >
+                                                                                    Переоценить
+                                                                                </button>
+                                                                                {call.isCorrection && (
+                                                                                    <button
+                                                                                        onClick={async (e) => {
+                                                                                            e.stopPropagation();
+                                                                                            try {
+                                                                                                const response = await fetch(`${API_BASE_URL}/api/call_versions/${call.id}`, {
+                                                                                                    headers: {
+                                                                                                        'X-API-Key': apiKey,
+                                                                                                        'X-User-Id': userId
+                                                                                                    }
+                                                                                                });
+                                                                                                const data = await response.json();
+                                                                                                if (data.status === 'success') {
+                                                                                                    setVersionHistory(data.versions);
+                                                                                                    setShowVersionsModal(true);
+                                                                                                }
+                                                                                            } catch (err) {
+                                                                                                console.error('Error fetching versions:', err);
+                                                                                            }
+                                                                                        }}
+                                                                                        className="bg-accent text-white px-4 py-2 rounded-lg hover:bg-accent/90 text-sm transition-all duration-300 font-medium min-w-[92px] whitespace-nowrap h-9 flex items-center justify-center"
+                                                                                        title="View version history"
+                                                                                    >
+                                                                                        Посмотреть истроию
+                                                                                    </button>
+                                                                                )}
+                                                                            </>
+                                                                        )}
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                     </td>
                                                 </tr>
                                                 {expandedDetails === call.id && (
