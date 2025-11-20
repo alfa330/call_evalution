@@ -1646,7 +1646,7 @@
                 : 0;
 
             return (
-                <div className="min-h-screen bg-background p-8 max-w-7xl mx-auto">
+                <div className="min-h-screen bg-background p-8 max-w-[1400px] mx-auto">
                     <header className="flex justify-between items-center mb-10 bg-card p-6 rounded-xl shadow-card border border-primary/10">
                         <h1 className="text-4xl font-extrabold text-text">Оценки операторов</h1>
                         <div className="flex space-x-4 items-center">
@@ -1731,7 +1731,7 @@
                         )}
                         {displayedCalls.length === 0 ? isLoading ? (
                             <div className="overflow-x-auto rounded-xl shadow-card border border-muted/20">
-                                <table className="min-w-full bg-white border-collapse">
+                                <table className="min-w-full bg-white border-collapse whitespace-nowrap">
                                     <thead>
                                         <tr className="bg-primary/10">
                                             <th className="p-5 border-b text-left text-base font-bold text-text">№</th>
@@ -1757,11 +1757,11 @@
                             </div>
                         ) : (
                             <div className="overflow rounded-xl shadow-card border border-muted/20">
-                                <table className="min-w-full bg-white border-collapse">
+                                <table className="min-w-full bg-white border-collapse whitespace-nowrap">
                                     <thead>
                                         <tr className="bg-primary/10">
                                             <th className="p-5 border-b text-left text-base font-bold text-text">№</th>
-                                            <th className="p-7 border-b text-left text-base font-bold text-text">Статус</th>
+                                            <th className="p-5 border-b text-left text-base font-bold text-text">Статус</th>
                                             <th className="p-5 border-b text-left text-base font-bold text-text">Направление</th>
                                             <th className="p-5 border-b text-left text-base font-bold text-text">Номер телефона</th>
                                             <th className="p-5 border-b text-left text-base font-bold text-text">Общий балл</th>
@@ -1777,14 +1777,14 @@
                                                     onClick={!call.is_imported ? () => handleSelectCall(call.id) : null}
                                                 >
                                                     <td className="p-5 border-b text-base font-medium text-text">{index + 1}</td>
-                                                    <td className="p-7 border-b text-base">
+                                                    <td className="p-5 border-b text-base">
                                                         {loadingCallId === call.id ? (
                                                             <div className="flex items-center">
                                                                 <div className="animate-spin rounded-full h-5 w-5 border-t-2 border-b-2 border-primary mr-3"></div>
                                                                 <span className="text-muted">Загрузка...</span>
                                                             </div>
                                                         ) : (
-                                                            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${call.is_imported ? 'bg-accent/20 text-accent' : 'bg-secondary/20 text-secondary'}`}>
+                                                            <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap ${call.is_imported ? 'bg-accent/20 text-accent' : 'bg-secondary/20 text-secondary'}`}>
                                                                 {call.is_imported ? 'Не оценен' : 'Загружен'}
                                                             </span>
                                                         )}
@@ -1881,7 +1881,7 @@
                                                                 {call.directions && call.directions.length > 0 ? (
                                                                     <div>
                                                                         <h5 className="text-base font-bold text-text mb-4">{call.selectedDirection}</h5>
-                                                                        <table className="w-full border-collapse bg-white rounded-lg shadow-card overflow-hidden">
+                                                                        <table className="w-full border-collapse bg-white rounded-lg shadow-card overflow-hidden whitespace-nowrap">
                                                                             <thead>
                                                                                 <tr className="bg-primary/10">
                                                                                     <th className="p-4 border-b text-left text-base font-bold text-text">Критерии</th>
