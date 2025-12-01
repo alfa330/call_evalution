@@ -637,6 +637,7 @@
 
             const getAppealDate = () => {
                 if (!appealDate) return null;
+                console.log("appealDate in getAppealDate: " + appealDate);
                 let digits = appealDate.replace(/\D/g, "");
                 const hasFileUpload = directions[0]?.hasFileUpload;
                 const requiredLength = hasFileUpload ? 14 : 12;
