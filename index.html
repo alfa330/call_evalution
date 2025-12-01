@@ -643,7 +643,7 @@
                 const hasFileUpload = directions[0]?.hasFileUpload;
 
                 // Определяем: это переоценка?
-                const isReEvaluation = evaluationId !== null;
+                const isReEvaluation = existingEvaluation?.id != null;
 
                 // --- ЛОГИКА ДЛЯ ПЕРЕОЦЕНКИ ---
                 if (isReEvaluation) {
