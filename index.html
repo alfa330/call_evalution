@@ -1731,7 +1731,7 @@
                         )}
                         {displayedCalls.length === 0 ? isLoading ? (
                             <div className="overflow-x-auto rounded-xl shadow-card border border-muted/20">
-                                <table className="min-w-full bg-white border-collapse whitespace-nowrap">
+                                <table className="min-w-full bg-white border-collapse">
                                     <thead>
                                         <tr className="bg-primary/10">
                                             <th className="p-5 border-b text-left text-base font-bold text-text">№</th>
@@ -1757,7 +1757,7 @@
                             </div>
                         ) : (
                             <div className="overflow rounded-xl shadow-card border border-muted/20">
-                                <table className="min-w-full bg-white border-collapse whitespace-nowrap">
+                                        <table className="min-w-full bg-white border-collapse">
                                     <thead>
                                         <tr className="bg-primary/10">
                                             <th className="p-5 border-b text-left text-base font-bold text-text">№</th>
@@ -1881,7 +1881,7 @@
                                                                 {call.directions && call.directions.length > 0 ? (
                                                                     <div>
                                                                         <h5 className="text-base font-bold text-text mb-4">{call.selectedDirection}</h5>
-                                                                        <table className="w-full border-collapse bg-white rounded-lg shadow-card overflow-hidden whitespace-nowrap">
+                                                                        <table className="w-full border-collapse bg-white rounded-lg shadow-card overflow-hidden">
                                                                             <thead>
                                                                                 <tr className="bg-primary/10">
                                                                                     <th className="p-4 border-b text-left text-base font-bold text-text">Критерии</th>
@@ -1900,7 +1900,7 @@
                                                                                                 {call.scores[critIndex] || 'Correct'}
                                                                                             </span>
                                                                                         </td>
-                                                                                        <td className="p-4 border-b text-base text-muted">{call.criterionComments[critIndex] || '-'}</td>
+                                                                                        <td className="p-4 border-b text-base text-muted break-words">{call.criterionComments[critIndex] || '-'}</td>
                                                                                     </tr>
                                                                                 ))}
                                                                             </tbody>
