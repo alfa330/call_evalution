@@ -255,6 +255,98 @@
             }).join(''));
         };
 
+        // Format plain text descriptions into HTML with lists and blocks for better display
+        const escapeHtml = (unsafe) => {
+            return unsafe
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        };
+
+        const parseToHtml = (text) => {
+            if (!text) return '';
+            const lines = text.split(/\r?\n/);
+            let html = '';
+            const listStack = [];
+
+            const closeLists = (toLevel = 0) => {
+                while (listStack.length > toLevel) {
+                    const t = listStack.pop();
+                    html += t === 'ol' ? '</ol>' : '</ul>';
+                }
+            };
+
+            const orderedMatch = (line) => {
+                const m = line.match(/^\s*(\d+(?:\.\d+)*)\.\s*(.*)$/);
+                return m;
+            };
+
+            for (let i = 0; i < lines.length; i++) {
+                const raw = lines[i];
+                const line = raw.replace(/\t/g, '    ');
+                if (!line.trim()) {
+                    closeLists(0);
+                    html += '<p>&nbsp;</p>';
+                    continue;
+                }
+
+                const om = orderedMatch(line);
+                if (om) {
+                    const idxParts = om[1].split('.');
+                    const level = idxParts.length; // 1 => top <ol>, 2 => nested
+                    const content = escapeHtml(om[2].trim());
+                    // ensure listStack depth
+                    if (listStack.length < level) {
+                        for (let j = listStack.length; j < level; j++) {
+                            html += '<ol class="list-decimal ml-' + (j * 4) + ' pl-6">';
+                            listStack.push('ol');
+                        }
+                    } else if (listStack.length > level) {
+                        closeLists(level);
+                    }
+                    html += `<li>${content}</li>`;
+                    continue;
+                }
+
+                const ulm = line.match(/^\s*[-•\*]\s+(.*)$/);
+                if (ulm) {
+                    if (listStack.length === 0 || listStack[listStack.length - 1] !== 'ul') {
+                        html += '<ul class="list-disc ml-6">';
+                        listStack.push('ul');
+                    }
+                    html += `<li>${escapeHtml(ulm[1].trim())}</li>`;
+                    continue;
+                }
+
+                // Detect a header-like pattern: STATUS NUMBER "..."
+                const headerQuoted = line.match(/^\s*([^\d\"]+)?\s*(\d+)\s*\"([\s\S]*)\"\s*$/);
+                if (headerQuoted && i === 0 && lines.join('\n').trim().endsWith('"')) {
+                    // whole text is a quoted block preceded by a short header
+                    const status = escapeHtml(headerQuoted[1] ? headerQuoted[1].trim() : '');
+                    const num = headerQuoted[2];
+                    const inner = headerQuoted[3];
+                    closeLists(0);
+                    html += `<div class="mb-2"><strong>${status} ${num}</strong></div>`;
+                    html += `<div>${parseToHtml(inner)}</div>`;
+                    break;
+                }
+
+                // default paragraph
+                closeLists(0);
+                html += `<p>${escapeHtml(line)}</p>`;
+            }
+
+            closeLists(0);
+            return html;
+        };
+
+        const FormattedDescription = ({ text }) => {
+            const html = parseToHtml(String(text || ''));
+            return React.createElement('div', { className: 'text-base text-muted bg-background p-4 rounded-md shadow-inner', dangerouslySetInnerHTML: { __html: html } });
+        };
+
         const LoginModal = ({ isOpen, onClose, onLogin }) => {
             const [login, setLogin] = useState('');
             const [password, setPassword] = useState('');
@@ -858,9 +950,9 @@
                                         </svg>
                                     </button>
                                 </div>
-                                <p className="text-base text-muted bg-background p-4 rounded-md shadow-inner whitespace-pre-wrap break-words">
-                                    {directions[0]?.criteria[shownCriterionIndex]?.value || 'Описания не имееться'}
-                                </p>
+                                <div>
+                                    <FormattedDescription text={directions[0]?.criteria[shownCriterionIndex]?.value || 'Описания не имееться'} />
+                                </div>
                             </div>
                         )}
 
