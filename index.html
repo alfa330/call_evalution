@@ -1721,6 +1721,31 @@
                 setShowEvaluationModal(true);
             };
 
+            // Delete an imported call (admin only)
+            const deleteImportedCall = async (callId) => {
+                if (!confirm('Вы уверены, что хотите удалить импортированный звонок?')) return;
+                setIsLoading(true);
+                try {
+                    const response = await fetch(`${API_BASE_URL}/api/call_evaluations/${callId}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-API-Key': apiKey,
+                            'X-User-Id': userId
+                        }
+                    });
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || JSON.stringify(data));
+                    setCalls(prev => prev.filter(c => c.id !== callId));
+                    alert('Импортированный звонок удалён');
+                } catch (err) {
+                    console.error('Error deleting imported call:', err);
+                    alert('Ошибка удаления: ' + (err.message || 'unknown'));
+                } finally {
+                    setIsLoading(false);
+                }
+            };
+
             const handleOperatorChange = (e) => {
                 const operatorId = parseInt(e.target.value);
                 const newOperator = operators.find(op => op.id === operatorId) || null;
@@ -1920,17 +1945,29 @@
                                                             {/* reserve fixed width on the right for action buttons so table doesn't reflow */}
                                                             <div className="flex-shrink-0 w-64 flex items-center justify-end space-x-3">
                                                                 {call.is_imported ? (
-                                                                    <button
-                                                                        onClick={(e) => {
-                                                                            e.stopPropagation();
-                                                                            setEditingEvaluation(call);  // Передаём call с предзаполненными phoneNumber и appealDate
-                                                                            setShowEvaluationModal(true);
-                                                                        }}
-                                                                        className="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary/90 text-sm transition-all duration-300 font-medium ml-2 min-w-[88px] whitespace-nowrap h-9 flex items-center justify-center"
-                                                                        title="Оценить импортированный звонок"
-                                                                    >
-                                                                        Оценить
-                                                                    </button>
+                                                                    <>
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                setEditingEvaluation(call);  // Передаём call с предзаполненными phoneNumber и appealDate
+                                                                                setShowEvaluationModal(true);
+                                                                            }}
+                                                                            className="bg-secondary text-white px-4 py-2 rounded-lg hover:bg-secondary/90 text-sm transition-all duration-300 font-medium ml-2 min-w-[88px] whitespace-nowrap h-9 flex items-center justify-center"
+                                                                            title="Оценить импортированный звонок"
+                                                                        >
+                                                                            Оценить
+                                                                        </button>
+
+                                                                        {userRole === 'admin' && (
+                                                                            <button
+                                                                                onClick={(e) => { e.stopPropagation(); deleteImportedCall(call.id); }}
+                                                                                className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 text-sm transition-all duration-300 font-medium ml-2 min-w-[88px] whitespace-nowrap h-9 flex items-center justify-center"
+                                                                                title="Удалить импортированный звонок"
+                                                                            >
+                                                                                Удалить
+                                                                            </button>
+                                                                        )}
+                                                                    </>
                                                                 ) : (
                                                                     <>
                                                                         <SvRequestButton
