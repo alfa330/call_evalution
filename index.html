@@ -1124,7 +1124,6 @@
             const [directions, setDirections] = useState([]);
             const [operators, setOperators] = useState([]);
             const [selectedOperator, setSelectedOperator] = useState(null);
-            const [showFiredOperators, setShowFiredOperators] = useState(false);
             const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
             const [expandedDetails, setExpandedDetails] = useState(null);
             const [editingEvaluation, setEditingEvaluation] = useState(null);
@@ -1133,7 +1132,6 @@
             const [operatorFromToken, setOperatorFromToken] = useState(null);
             const [supervisors, setSupervisors] = useState([]);
             const [selectedSupervisor, setSelectedSupervisor] = useState(null);
-            const [showFiredSupervisors, setShowFiredSupervisors] = useState(false);
             const [showVersionsModal, setShowVersionsModal] = useState(false);
             const [versionHistory, setVersionHistory] = useState([]);
             const [fromDate, setFromDate] = useState(null);
@@ -1749,23 +1747,7 @@
             };
 
             const handleOperatorChange = (e) => {
-                const val = e.target.value;
-                if (val === '__show_fired_operators') {
-                    setShowFiredOperators(true);
-                    // keep selection empty
-                    setSelectedOperator(null);
-                    setCalls([]);
-                    setExpandedDetails(null);
-                    return;
-                }
-                if (val === '__hide_fired_operators') {
-                    setShowFiredOperators(false);
-                    setSelectedOperator(null);
-                    setCalls([]);
-                    setExpandedDetails(null);
-                    return;
-                }
-                const operatorId = parseInt(val);
+                const operatorId = parseInt(e.target.value);
                 const newOperator = operators.find(op => op.id === operatorId) || null;
                 setSelectedOperator(newOperator);
                 setCalls([]);
@@ -1774,26 +1756,7 @@
             };
 
             const handleSupervisorChange = (e) => {
-                const val = e.target.value;
-                if (val === '__show_fired_supervisors') {
-                    setShowFiredSupervisors(true);
-                    setSelectedSupervisor(null);
-                    setSelectedOperator(null);
-                    setOperators([]);
-                    setCalls([]);
-                    setExpandedDetails(null);
-                    return;
-                }
-                if (val === '__hide_fired_supervisors') {
-                    setShowFiredSupervisors(false);
-                    setSelectedSupervisor(null);
-                    setSelectedOperator(null);
-                    setOperators([]);
-                    setCalls([]);
-                    setExpandedDetails(null);
-                    return;
-                }
-                const supervisorId = parseInt(val);
+                const supervisorId = parseInt(e.target.value);
                 const newSupervisor = supervisors.find(sv => sv.id === supervisorId) || null;
                 setSelectedSupervisor(newSupervisor ? newSupervisor.id : null);
                 setSelectedOperator(null);
@@ -1864,18 +1827,12 @@
                                                 .map(sv => (
                                                     <option key={sv.id} value={sv.id}>{sv.name}</option>
                                                 ))}
-                                            {showFiredSupervisors ? (
-                                                <>
-                                                    <option value="__hide_fired_supervisors" className="text-muted">Свернуть уволенных</option>
-                                                    {supervisors
-                                                        .filter(sv => sv.status === 'fired')
-                                                        .map(sv => (
-                                                            <option key={sv.id} value={sv.id}>{sv.name}</option>
-                                                        ))}
-                                                </>
-                                            ) : (
-                                                <option value="__show_fired_supervisors" className="text-muted">Показать уволенных...</option>
-                                            )}
+                                            <option value="_grp_fired" disabled className="group-sep text-muted">— Уволенные —</option>
+                                            {supervisors
+                                                .filter(sv => sv.status === 'fired')
+                                                .map(sv => (
+                                                    <option key={sv.id} value={sv.id}>{sv.name}</option>
+                                                ))}
                                         </select>
                                     </div>
                                 )}
@@ -1893,18 +1850,12 @@
                                                 .map(op => (
                                                     <option key={op.id} value={op.id}>{op.name}</option>
                                                 ))}
-                                            {showFiredOperators ? (
-                                                <>
-                                                    <option value="__hide_fired_operators" className="text-muted">Свернуть уволенных</option>
-                                                    {operators
-                                                        .filter(op => op.status === 'fired')
-                                                        .map(op => (
-                                                            <option key={op.id} value={op.id}>{op.name}</option>
-                                                        ))}
-                                                </>
-                                            ) : (
-                                                <option value="__show_fired_operators" className="text-muted">Показать уволенных...</option>
-                                            )}
+                                            <option value="_grp_fired" disabled className="group-sep text-muted">— Уволенные —</option>
+                                            {operators
+                                                .filter(op => op.status === 'fired')
+                                                .map(op => (
+                                                    <option key={op.id} value={op.id}>{op.name}</option>
+                                                ))}
                                     </select>
                                 </div>
                                 <div className="flex flex-col space-y-2">
