@@ -123,6 +123,33 @@
             font-size: 14px;
             font-weight: bold;
             text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+        /* Styles for grouped selects */
+        .grouped-select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            padding-right: 2.5rem;
+        }
+        select.optgroup-styled optgroup {
+            font-weight: 600;
+            color: #374151;
+        }
+        /* Muted style for terminated users (may be limited by browser support) */
+        .option-terminated {
+            color: #9CA3AF;
+            font-style: italic;
+        }
+        /* Small badge next to labels */
+        .label-badge {
+            display: inline-block;
+            margin-left: 8px;
+            padding: 2px 8px;
+            font-size: 12px;
+            border-radius: 9999px;
+            background-color: #eef2ff;
+            color: #4f46e5;
+            font-weight: 600;
+        }
         }
         .range-labels {
             display: flex;
@@ -1814,50 +1841,54 @@
                             <div className="flex flex-wrap items-center gap-6">
                                 {userRole === 'admin' && (
                                     <div className="flex flex-col space-y-2">
-                                        <label className="font-semibold text-text text-lg">Супервайзеры:</label>
+                                        <label className="font-semibold text-text text-lg">Супервайзеры:
+                                            <span className="label-badge">{supervisors.filter(sv => sv.status !== 'fired').length}/{supervisors.length}</span>
+                                        </label>
                                         <select
                                             value={selectedSupervisor || ''}
                                             onChange={handleSupervisorChange}
-                                            className="p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text min-w-[200px]"
+                                            className="grouped-select p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text min-w-[200px] optgroup-styled"
                                         >
                                             <option value="">Выбрать супервайзера</option>
                                             <optgroup label="Активные">
                                                 {supervisors
                                                     .filter(sv => sv.status !== 'fired')
                                                     .map(sv => (
-                                                        <option key={sv.id} value={sv.id}>{sv.name}</option>
+                                                        <option key={sv.id} value={sv.id} className={sv.status === 'fired' ? 'option-terminated' : ''}>{sv.name}</option>
                                                     ))}
                                             </optgroup>
                                             <optgroup label="Уволенные">
                                                 {supervisors
                                                     .filter(sv => sv.status === 'fired')
                                                     .map(sv => (
-                                                        <option key={sv.id} value={sv.id}>{sv.name}</option>
+                                                        <option key={sv.id} value={sv.id} className="option-terminated">{sv.name}</option>
                                                     ))}
                                             </optgroup>
                                         </select>
                                     </div>
                                 )}
                                 <div className="flex flex-col space-y-2">
-                                    <label className="font-semibold text-text text-lg">Оператор:</label>
+                                    <label className="font-semibold text-text text-lg">Оператор:
+                                        <span className="label-badge">{operators.filter(op => op.status !== 'fired').length}/{operators.length}</span>
+                                    </label>
                                     <select
                                         value={selectedOperator?.id || ''}
                                         onChange={handleOperatorChange}
-                                        className="p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text min-w-[200px]"
+                                        className="grouped-select p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text min-w-[200px] optgroup-styled"
                                     >
                                             <option value="">Выбрать оператора</option>
                                             <optgroup label="Активные">
                                                 {operators
                                                     .filter(op => op.status !== 'fired')
                                                     .map(op => (
-                                                        <option key={op.id} value={op.id}>{op.name}</option>
+                                                        <option key={op.id} value={op.id} className={op.status === 'fired' ? 'option-terminated' : ''}>{op.name}</option>
                                                     ))}
                                             </optgroup>
                                             <optgroup label="Уволенные">
                                                 {operators
                                                     .filter(op => op.status === 'fired')
                                                     .map(op => (
-                                                        <option key={op.id} value={op.id}>{op.name}</option>
+                                                        <option key={op.id} value={op.id} className="option-terminated">{op.name}</option>
                                                     ))}
                                             </optgroup>
                                     </select>
