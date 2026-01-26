@@ -1971,7 +1971,7 @@
                                                     <td className="p-5 border-b text-base text-text">{call.selectedDirection || '-'}</td>
                                                     <td className="p-5 border-b text-base text-text">{call.phoneNumber || '-'}</td>
                                                     <td className="p-5 border-b text-base text-text">{call.totalScore != null ? Math.round(call.totalScore) : '-'}</td>
-                                                    <td className="p-5 border-b text-base text-text">{call.appeal_date || '-'}</td>
+                                                    <td className="p-5 border-b text-base text-text">{formatDateReadable(call.appeal_date) || '-'}</td>
                                                     <td className="p-5 border-b text-base text-text">
                                                         <div className="flex items-center justify-between">
                                                             <span className="mr-4">{formatDateReadable(call._rawEvaluation?.evaluation_date || call.date)}</span>
@@ -2096,7 +2096,7 @@
                                                                                 ))}
                                                                             </tbody>
                                                                         </table>
-                                                                        <p className="mt-2 text-base text-text"><strong>Оценщик:</strong> {call._rawEvaluation?.evaluator || '-'}</p>
+                                                                        <p className="mt-2 text-base text-text"><strong>Оценщик:</strong> {call._rawEvaluation?.evaluator || '-'} <span className="ml-4 text-base"><strong>Дата оценки:</strong> {formatDateReadable(call._rawEvaluation?.evaluation_date || call.date)}</span></p>
                                                                         <p className="mt-4 text-base text-text"><strong>Дата обращения:</strong> {formatDateReadable(call._rawEvaluation?.appeal_date || call.appeal_date)}</p>
                                                                         {call.audioUrl && call.directions[0]?.hasFileUpload && (
                                                                             <audio controls className="w-full max-w-[500px] mt-6">
