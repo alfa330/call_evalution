@@ -2082,6 +2082,7 @@
                                                                             </tbody>
                                                                         </table>
                                                                         <p className="mt-4 text-base text-text"><strong>Дата обращения:</strong> {call.appeal_date || '-'}</p>
+                                                                        console.log(call);
                                                                         <p className="mt-2 text-base text-text"><strong>Оценщик:</strong> {call.evaluator}</p>
                                                                         {call.audioUrl && call.directions[0]?.hasFileUpload && (
                                                                             <audio controls className="w-full max-w-[500px] mt-6">
