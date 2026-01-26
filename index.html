@@ -1772,7 +1772,6 @@
 
             const callsByMonth = calls.filter(call => call.assignedMonth === selectedMonth);
             let displayedCalls = callsByMonth;
-            console.log('Displayed calls before filtering:', displayedCalls);
             if (viewMode === 'normal') {
                 displayedCalls = displayedCalls.filter(call => (!fromDate || call.date >= fromDate) && (!toDate || call.date <= toDate));
             } else {
@@ -2083,7 +2082,7 @@
                                                                             </tbody>
                                                                         </table>
                                                                         <p className="mt-4 text-base text-text"><strong>Дата обращения:</strong> {call.appeal_date || '-'}</p>
-                                                                        <p className="mt-2 text-base text-text"><strong>Оценщик:</strong> {call.evaluator}</p>
+                                                                        <p className="mt-2 text-base text-text"><strong>Оценщик:</strong> {call._rawEvaluation.evaluator}</p>
                                                                         {call.audioUrl && call.directions[0]?.hasFileUpload && (
                                                                             <audio controls className="w-full max-w-[500px] mt-6">
                                                                                 <source src={call.audioUrl} type="audio/mpeg" />
