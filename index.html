@@ -638,34 +638,64 @@
                     return formatted;
                 } else {
                     // Формат: dd месяц HH:MM
-                    // Извлекаем только цифры и пробелы
                     let text = input.trim();
                     
-                    // Пытаемся распознать уже введённый формат
-                    const parts = text.split(/\s+/);
-                    let result = "";
+                    // Проверяем, содержит ли строка название месяца
+                    const hasMonth = monthsRu.some(m => text.toLowerCase().includes(m.toLowerCase()));
                     
-                    // Если вводим только цифры - форматируем автоматически
+                    if (hasMonth) {
+                        // Пользователь вводит формат "23 янв. 02:23"
+                        // Просто очищаем и возвращаем, если это уже верный формат
+                        const pattern = /^(\d{1,2})\s+([а-яё]+\.?)\s+(\d{1,2}):(\d{2})$/i;
+                        const match = text.match(pattern);
+                        if (match) {
+                            const day = match[1];
+                            const month = match[2];
+                            const hh = match[3].padStart(2, '0');
+                            const mm = match[4];
+                            return `${day} ${month} ${hh}:${mm}`;
+                        }
+                        
+                        // Если близко, но не совсем - пытаемся исправить
+                        const partialPattern = /(\d{1,2})\s+([а-яё]+\.?)\s*(\d{0,2}):?(\d{0,2})/i;
+                        const partialMatch = text.match(partialPattern);
+                        if (partialMatch) {
+                            const day = partialMatch[1].padStart(2, '0');
+                            const month = partialMatch[2];
+                            const hh = partialMatch[3] ? partialMatch[3].padStart(2, '0') : '';
+                            const mm = partialMatch[4] ? partialMatch[4].padStart(2, '0') : '';
+                            if (hh && mm) {
+                                return `${day} ${month} ${hh}:${mm}`;
+                            } else if (hh) {
+                                return `${day} ${month} ${hh}`;
+                            } else {
+                                return `${day} ${month}`;
+                            }
+                        }
+                        return text;
+                    }
+                    
+                    // Вводятся только цифры - форматируем автоматически
                     let digits = input.replace(/\D/g, "");
                     if (digits.length > 0) {
                         if (digits.length <= 2) {
-                            result = digits; // DD
+                            return digits; // DD
                         } else if (digits.length <= 4) {
                             const day = digits.slice(0, 2);
                             const monthNum = parseInt(digits.slice(2, 4));
                             if (monthNum >= 1 && monthNum <= 12) {
-                                result = day + " " + monthsRu[monthNum - 1];
+                                return day + " " + monthsRu[monthNum - 1];
                             } else {
-                                result = day;
+                                return day;
                             }
                         } else if (digits.length <= 6) {
                             const day = digits.slice(0, 2);
                             const monthNum = parseInt(digits.slice(2, 4));
                             const hh = digits.slice(4, 6);
                             if (monthNum >= 1 && monthNum <= 12) {
-                                result = day + " " + monthsRu[monthNum - 1] + " " + hh;
+                                return day + " " + monthsRu[monthNum - 1] + " " + hh;
                             } else {
-                                result = day + " " + hh;
+                                return day + " " + hh;
                             }
                         } else {
                             const day = digits.slice(0, 2);
@@ -673,13 +703,13 @@
                             const hh = digits.slice(4, 6);
                             const mm = digits.slice(6, 8);
                             if (monthNum >= 1 && monthNum <= 12) {
-                                result = day + " " + monthsRu[monthNum - 1] + " " + hh + ":" + mm;
+                                return day + " " + monthsRu[monthNum - 1] + " " + hh + ":" + mm;
                             } else {
-                                result = day + " " + hh + ":" + mm;
+                                return day + " " + hh + ":" + mm;
                             }
                         }
                     }
-                    return result;
+                    return text;
                 }
             };
 
