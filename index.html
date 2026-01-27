@@ -464,7 +464,13 @@
                             setDurationMismatch(false);
                             setPhoneNumber(existingEvaluation.phoneNumber || '');
                             const date = new Date(existingEvaluation.appeal_date);
-                            const formatted = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+                            const hasFileUpload = directions[0]?.hasFileUpload;
+                            let formatted;
+                            if (hasFileUpload) {
+                                formatted = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+                            } else {
+                                formatted = `${date.getDate()} ${monthsRu[date.getMonth()]} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                            }
                             setAppealDate(formatted); 
                             setScores(directions[0]?.criteria.map(() => 'Correct') || []);
                             setCriterionComments(directions[0]?.criteria.map(() => '') || []);
@@ -489,7 +495,13 @@
                         console.log(existingEvaluation);
                         if (existingEvaluation.appeal_date) {
                             const date = new Date(existingEvaluation.appeal_date);
-                            const formatted = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+                            const hasFileUpload = directions[0]?.hasFileUpload;
+                            let formatted;
+                            if (hasFileUpload) {
+                                formatted = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
+                            } else {
+                                formatted = `${date.getDate()} ${monthsRu[date.getMonth()]} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+                            }
                             setAppealDate(formatted);
                             console.log("2 "+formatted);
                         } else {
@@ -606,19 +618,69 @@
                 }
             };
 
+            const monthsRu = ['янв.', 'февр.', 'мар.', 'апр.', 'май', 'июн.', 'июл.', 'авг.', 'сент.', 'окт.', 'ноя.', 'дек.'];
+            
             const formatAppealDate = (input) => {
-                let digits = input.replace(/\D/g, "");
                 const hasFileUpload = directions[0]?.hasFileUpload;
-                const maxLength = hasFileUpload ? 14 : 12; // 14 digits for full datetime with seconds, 12 without seconds
-                if (digits.length > maxLength) digits = digits.slice(0, maxLength);
-                let formatted = "";
-                if (digits.length > 0) formatted += digits.slice(0, 2); // DD
-                if (digits.length > 2) formatted += "-" + digits.slice(2, 4); // MM
-                if (digits.length > 4) formatted += "-" + digits.slice(4, 8); // YYYY
-                if (digits.length > 8) formatted += " " + digits.slice(8, 10); // HH
-                if (digits.length > 10) formatted += ":" + digits.slice(10, 12); // mm
-                if (hasFileUpload && digits.length > 12) formatted += ":" + digits.slice(12, 14); // ss only for file upload cases
-                return formatted;
+                
+                if (hasFileUpload) {
+                    // Формат: DD-MM-YYYY HH:MM:SS
+                    let digits = input.replace(/\D/g, "");
+                    const maxLength = 14;
+                    if (digits.length > maxLength) digits = digits.slice(0, maxLength);
+                    let formatted = "";
+                    if (digits.length > 0) formatted += digits.slice(0, 2); // DD
+                    if (digits.length > 2) formatted += "-" + digits.slice(2, 4); // MM
+                    if (digits.length > 4) formatted += "-" + digits.slice(4, 8); // YYYY
+                    if (digits.length > 8) formatted += " " + digits.slice(8, 10); // HH
+                    if (digits.length > 10) formatted += ":" + digits.slice(10, 12); // mm
+                    if (digits.length > 12) formatted += ":" + digits.slice(12, 14); // ss
+                    return formatted;
+                } else {
+                    // Формат: dd месяц HH:MM
+                    // Извлекаем только цифры и пробелы
+                    let text = input.trim();
+                    
+                    // Пытаемся распознать уже введённый формат
+                    const parts = text.split(/\s+/);
+                    let result = "";
+                    
+                    // Если вводим только цифры - форматируем автоматически
+                    let digits = input.replace(/\D/g, "");
+                    if (digits.length > 0) {
+                        if (digits.length <= 2) {
+                            result = digits; // DD
+                        } else if (digits.length <= 4) {
+                            const day = digits.slice(0, 2);
+                            const monthNum = parseInt(digits.slice(2, 4));
+                            if (monthNum >= 1 && monthNum <= 12) {
+                                result = day + " " + monthsRu[monthNum - 1];
+                            } else {
+                                result = day;
+                            }
+                        } else if (digits.length <= 6) {
+                            const day = digits.slice(0, 2);
+                            const monthNum = parseInt(digits.slice(2, 4));
+                            const hh = digits.slice(4, 6);
+                            if (monthNum >= 1 && monthNum <= 12) {
+                                result = day + " " + monthsRu[monthNum - 1] + " " + hh;
+                            } else {
+                                result = day + " " + hh;
+                            }
+                        } else {
+                            const day = digits.slice(0, 2);
+                            const monthNum = parseInt(digits.slice(2, 4));
+                            const hh = digits.slice(4, 6);
+                            const mm = digits.slice(6, 8);
+                            if (monthNum >= 1 && monthNum <= 12) {
+                                result = day + " " + monthsRu[monthNum - 1] + " " + hh + ":" + mm;
+                            } else {
+                                result = day + " " + hh + ":" + mm;
+                            }
+                        }
+                    }
+                    return result;
+                }
             };
 
             const handleAppealDateChange = (e) => {
@@ -639,30 +701,48 @@
                 if (!appealDate) return null;
                 console.log("appealDate in getAppealDate: " + appealDate);
 
-                let digits = appealDate.replace(/\D/g, "");
                 const hasFileUpload = directions[0]?.hasFileUpload;
-
-                // Определяем: это переоценка?
                 const isReEvaluation = existingEvaluation?.id != null;
 
-                // --- ЛОГИКА ДЛЯ ПЕРЕОЦЕНКИ ---
-                if (isReEvaluation) {
-                    // принимаем любое значение с минимум 12 цифрами (DDMMYYYYHHMM)
-                    if (digits.length < 12) return null;
+                if (hasFileUpload) {
+                    // Формат: DD-MM-YYYY HH:MM:SS
+                    let digits = appealDate.replace(/\D/g, "");
 
-                    // если есть секунды → используем, если нет → добавляем "00"
-                    const seconds = digits.length >= 14 ? digits.slice(12, 14) : "00";
+                    if (isReEvaluation) {
+                        if (digits.length < 12) return null;
+                        const seconds = digits.length >= 14 ? digits.slice(12, 14) : "00";
+                        return `${digits.slice(4,8)}-${digits.slice(2,4)}-${digits.slice(0,2)}T${digits.slice(8,10)}:${digits.slice(10,12)}:${seconds}`;
+                    }
 
+                    if (digits.length !== 14) return null;
+                    const seconds = digits.slice(12,14);
                     return `${digits.slice(4,8)}-${digits.slice(2,4)}-${digits.slice(0,2)}T${digits.slice(8,10)}:${digits.slice(10,12)}:${seconds}`;
+                } else {
+                    // Формат: dd месяц HH:MM
+                    const text = appealDate.trim();
+                    
+                    // Парсим: "17 янв. 15:33"
+                    const pattern = /^(\d{1,2})\s+([а-яё]+\.?)\s+(\d{1,2}):(\d{2})$/i;
+                    const match = text.match(pattern);
+                    
+                    if (!match) return null;
+                    
+                    const day = match[1].padStart(2, '0');
+                    const monthStr = match[2].toLowerCase().replace(/\./, '');
+                    const hh = match[3].padStart(2, '0');
+                    const mm = match[4];
+                    
+                    // Найдём номер месяца
+                    const monthIndex = monthsRu.findIndex(m => m.replace(/\./, '').toLowerCase() === monthStr);
+                    if (monthIndex === -1) return null;
+                    
+                    const month = String(monthIndex + 1).padStart(2, '0');
+                    
+                    // Используем текущий год
+                    const year = new Date().getFullYear();
+                    
+                    return `${year}-${month}-${day}T${hh}:${mm}:00`;
                 }
-
-                // --- ЛОГИКА ДЛЯ СОЗДАНИЯ НОВОГО НАПРАВЛЕНИЯ ---
-                const requiredLength = hasFileUpload ? 14 : 12;
-                if (digits.length !== requiredLength) return null;
-
-                const seconds = hasFileUpload ? digits.slice(12,14) : "00";
-
-                return `${digits.slice(4,8)}-${digits.slice(2,4)}-${digits.slice(0,2)}T${digits.slice(8,10)}:${digits.slice(10,12)}:${seconds}`;
             };
 
             const handleSubmit = async (saveAsDraft = false) => {
@@ -847,7 +927,7 @@
                                     type="text"
                                     value={appealDate}
                                     onChange={handleAppealDateChange}
-                                    placeholder={directions[0]?.hasFileUpload ? "DD-MM-YYYY HH:MM:SS" : "DD-MM-YYYY HH:MM"}
+                                    placeholder={directions[0]?.hasFileUpload ? "DD-MM-YYYY HH:MM:SS" : "DD месяц HH:MM"}
                                     readOnly={isLocked}
                                     className={`w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 ${isLocked ? 'bg-muted/10 opacity-70' : 'bg-white'} text-text`}
                                 />
