@@ -1949,12 +1949,12 @@
                                             {supervisors
                                                 .filter(sv => sv.status !== 'fired')
                                                 .map(sv => (
-                                                    <option key={sv.id} value={sv.id} style={{ backgroundColor: '#10B981', color: '#FFFFFF' }}>{sv.name}</option>
+                                                    <option key={sv.id} value={sv.id} className="bg-green-50">{sv.name}</option>
                                                 ))}
                                             {supervisors
                                                 .filter(sv => sv.status === 'fired')
                                                 .map(sv => (
-                                                    <option key={sv.id} value={sv.id} style={{ backgroundColor: '#F59E0B', color: '#000000' }}>{sv.name}</option>
+                                                    <option key={sv.id} value={sv.id} className="bg-yellow-50">{sv.name}</option>
                                                 ))}
                                         </select>
                                     </div>
@@ -1970,12 +1970,12 @@
                                             {operators
                                                 .filter(op => op.status !== 'fired')
                                                 .map(op => (
-                                                    <option key={op.id} value={op.id} style={{ backgroundColor: '#10B981', color: '#FFFFFF' }}>{op.name}</option>
+                                                    <option key={op.id} value={op.id} className="bg-green-50">{op.name}</option>
                                                 ))}
                                             {operators
                                                 .filter(op => op.status === 'fired')
                                                 .map(op => (
-                                                    <option key={op.id} value={op.id} style={{ backgroundColor: '#F59E0B', color: '#000000' }}>{op.name}</option>
+                                                    <option key={op.id} value={op.id} className="bg-yellow-50">{op.name}</option>
                                                 ))}
                                     </select>
                                 </div>
