@@ -1950,13 +1950,13 @@
                                                 .filter(sv => sv.status !== 'fired')
                                                 .sort((a, b) => a.name.localeCompare(b.name, 'ru', { sensitivity: 'base' }))
                                                 .map(sv => (
-                                                    <option key={sv.id} value={sv.id} className="bg-green-50">{sv.name}</option>
+                                                    <option key={sv.id} value={sv.id} className="bg-green-100">{sv.name}</option>
                                                 ))}
                                             {supervisors
                                                 .filter(sv => sv.status === 'fired')
                                                 .sort((a, b) => a.name.localeCompare(b.name, 'ru', { sensitivity: 'base' }))
                                                 .map(sv => (
-                                                    <option key={sv.id} value={sv.id} className="bg-yellow-50">{sv.name}</option>
+                                                    <option key={sv.id} value={sv.id} className="bg-yellow-100">{sv.name}</option>
                                                 ))}
                                         </select>
                                     </div>
@@ -1973,13 +1973,13 @@
                                                 .filter(op => op.status !== 'fired')
                                                 .sort((a, b) => a.name.localeCompare(b.name, 'ru', { sensitivity: 'base' }))
                                                 .map(op => (
-                                                    <option key={op.id} value={op.id} className="bg-green-50">{op.name}</option>
+                                                    <option key={op.id} value={op.id} className="bg-green-100">{op.name}</option>
                                                 ))}
                                             {operators
                                                 .filter(op => op.status === 'fired')
                                                 .sort((a, b) => a.name.localeCompare(b.name, 'ru', { sensitivity: 'base' }))
                                                 .map(op => (
-                                                    <option key={op.id} value={op.id} className="bg-yellow-50">{op.name}</option>
+                                                    <option key={op.id} value={op.id} className="bg-yellow-100">{op.name}</option>
                                                 ))}
                                     </select>
                                 </div>
