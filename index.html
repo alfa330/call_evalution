@@ -432,6 +432,11 @@
             const [expectedDuration, setExpectedDuration] = useState(null);
             const [actualDuration, setActualDuration] = useState(null);
             const [durationMismatch, setDurationMismatch] = useState(false);
+            const [selectedDirectionId, setSelectedDirectionId] = useState(null);
+
+            const currentDirection = directions && directions.length > 0
+                ? (directions.find(d => d.id === selectedDirectionId) || directions[0])
+                : null;
 
             // If this is a reevaluation or an imported call, lock phone/date fields
             const isLocked = !!(existingEvaluation?.isReevaluation || existingEvaluation?.is_imported);
@@ -452,7 +457,13 @@
             };
 
             useEffect(() => {
-                if (isOpen) {
+                if (isOpen && directions && directions.length > 0) {
+                    const initialDirId = existingEvaluation
+                        ? (existingEvaluation.directionId ?? existingEvaluation._rawEvaluation?.direction_id ?? directions.find(d => d.name === existingEvaluation.selectedDirection)?.id ?? operator?.direction_id ?? directions[0]?.id)
+                        : (operator?.direction_id ?? directions[0]?.id);
+                    setSelectedDirectionId(initialDirId);
+                    const initialDir = directions.find(d => d.id === initialDirId) || directions[0];
+
                     if (existingEvaluation) {
                         if (existingEvaluation.is_imported) {
                             // Для импортированных: только базовые поля
@@ -464,7 +475,7 @@
                             setDurationMismatch(false);
                             setPhoneNumber(existingEvaluation.phoneNumber || '');
                             const date = new Date(existingEvaluation.appeal_date);
-                            const hasFileUpload = directions[0]?.hasFileUpload;
+                            const hasFileUpload = initialDir?.hasFileUpload;
                             let formatted;
                             if (hasFileUpload) {
                                 formatted = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
@@ -472,9 +483,9 @@
                                 formatted = `${date.getDate()} ${monthsRu[date.getMonth()]} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
                             }
                             setAppealDate(formatted); 
-                            setScores(directions[0]?.criteria.map(() => 'Correct') || []);
-                            setCriterionComments(directions[0]?.criteria.map(() => '') || []);
-                            setCommentVisible(directions[0]?.criteria.map(() => false) || []);
+                            setScores(initialDir?.criteria?.map(() => 'Correct') || []);
+                            setCriterionComments(initialDir?.criteria?.map(() => '') || []);
+                            setCommentVisible(initialDir?.criteria?.map(() => false) || []);
                             setAssignedMonth(selectedMonth);
                             setIsDraft(false);
                             setAudioUrl(null);
@@ -486,7 +497,7 @@
                         setDurationMismatch(false);
                         // initialize commentVisible: true where there is existing comment
                         const vis = (existingEvaluation.criterionComments || []).map(c => !!(c && c.trim()));
-                        setCommentVisible(vis.length ? vis : (directions[0]?.criteria.map(() => false) || []));
+                        setCommentVisible(vis.length ? vis : (initialDir?.criteria?.map(() => false) || []));
                         setPhoneNumber(existingEvaluation.phoneNumber || '');
                         setAssignedMonth(existingEvaluation.assignedMonth || selectedMonth);
                         setIsDraft(existingEvaluation.isDraft || false);
@@ -495,7 +506,7 @@
                         console.log(existingEvaluation);
                         if (existingEvaluation.appeal_date) {
                             const date = new Date(existingEvaluation.appeal_date);
-                            const hasFileUpload = directions[0]?.hasFileUpload;
+                            const hasFileUpload = initialDir?.hasFileUpload;
                             let formatted;
                             if (hasFileUpload) {
                                 formatted = `${date.getDate().toString().padStart(2, '0')}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getFullYear()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}:${date.getSeconds().toString().padStart(2, '0')}`;
@@ -512,9 +523,9 @@
                         setExpectedDuration(null);
                         setActualDuration(null);
                         setDurationMismatch(false);
-                        setScores(directions[0]?.criteria.map(() => 'Correct') || []);
-                        setCriterionComments(directions[0]?.criteria.map(() => '') || []);
-                        setCommentVisible(directions[0]?.criteria.map(() => false) || []); // default: hidden
+                        setScores(initialDir?.criteria?.map(() => 'Correct') || []);
+                        setCriterionComments(initialDir?.criteria?.map(() => '') || []);
+                        setCommentVisible(initialDir?.criteria?.map(() => false) || []); // default: hidden
                         setCallFile(null);
                         setAudioUrl(null);
                         setPhoneNumber('');
@@ -524,11 +535,11 @@
                         setPhoneError('');
                     }
                 }
-            }, [isOpen, existingEvaluation, directions, selectedMonth]);
+            }, [isOpen, existingEvaluation, directions, selectedMonth, operator?.direction_id]);
 
             useEffect(() => {
                 const loadAudio = async () => {
-                    if (existingEvaluation?.id && directions[0]?.hasFileUpload && apiKey && userId && !existingEvaluation?.is_imported) {
+                    if (existingEvaluation?.id && currentDirection?.hasFileUpload && apiKey && userId && !existingEvaluation?.is_imported) {
                         setAudioError(null);
                         const url = await getAudioUrlWithAuth(existingEvaluation.id, apiKey, userId);
                         if (url) {
@@ -539,7 +550,7 @@
                     }
                 };
                 loadAudio();
-            }, [existingEvaluation, apiKey, userId, directions]);
+            }, [existingEvaluation, apiKey, userId, currentDirection?.hasFileUpload]);
 
             const handleFileChange = (e) => {
                 const file = e.target.files[0];
@@ -620,8 +631,19 @@
 
             const monthsRu = ['янв.', 'февр.', 'мар.', 'апр.', 'май', 'июн.', 'июл.', 'авг.', 'сент.', 'окт.', 'ноя.', 'дек.'];
             
+            const handleDirectionChange = (e) => {
+                const newId = Number(e.target.value) || e.target.value;
+                setSelectedDirectionId(newId);
+                const newDir = directions.find(d => d.id === newId) || directions[0];
+                if (newDir?.criteria) {
+                    setScores(newDir.criteria.map(() => 'Correct'));
+                    setCriterionComments(newDir.criteria.map(() => ''));
+                    setCommentVisible(newDir.criteria.map(() => false));
+                }
+            };
+
             const formatAppealDate = (input) => {
-                const hasFileUpload = directions[0]?.hasFileUpload;
+                const hasFileUpload = currentDirection?.hasFileUpload;
                 
                 if (hasFileUpload) {
                     // Формат: DD-MM-YYYY HH:MM:SS
@@ -721,9 +743,10 @@
                 setShownCriterionIndex(shownCriterionIndex === index ? null : index);
             };
 
-            const isSubmitDisabled = directions.length === 0 ||
-                directions[0]?.criteria.length === 0 ||
-                (directions[0]?.hasFileUpload && !callFile && !audioUrl) ||
+            const isSubmitDisabled = !currentDirection ||
+                directions.length === 0 ||
+                currentDirection?.criteria?.length === 0 ||
+                (currentDirection?.hasFileUpload && !callFile && !audioUrl) ||
                 scores.some((score, index) => (score === 'Error' || score === 'Incorrect') && !criterionComments[index].trim()) ||
                 durationMismatch;
 
@@ -731,7 +754,7 @@
                 if (!appealDate) return null;
                 console.log("appealDate in getAppealDate: " + appealDate);
 
-                const hasFileUpload = directions[0]?.hasFileUpload;
+                const hasFileUpload = currentDirection?.hasFileUpload;
                 const isReEvaluation = existingEvaluation?.id != null;
 
                 if (hasFileUpload) {
@@ -778,7 +801,7 @@
             const handleSubmit = async (saveAsDraft = false) => {
                 setIsSubmitting(true);
                 if (isSubmitDisabled && !saveAsDraft) return;
-                const criteria = directions[0]?.criteria || [];
+                const criteria = currentDirection?.criteria || [];
                 const hasCriticalError = criteria.some((criterion, index) => 
                     criterion.isCritical && scores[index] === 'Error'
                 );
@@ -807,7 +830,7 @@
                 formData.append('is_draft', saveAsDraft);
                 formData.append('scores', JSON.stringify(scores));
                 formData.append('criterion_comments', JSON.stringify(criterionComments));
-                formData.append('direction', operator.direction_id);
+                formData.append('direction', currentDirection?.id ?? operator?.direction_id);
                 const appeal_date = getAppealDate();
                 console.log("4"+appeal_date);
                 console.log("3 " + appealDate);
@@ -840,16 +863,17 @@
                             phoneNumber: phoneNumber,
                             totalScore: totalScore.toFixed(2),
                             comment: combinedComment,
-                            selectedDirection: directions[0]?.name,
+                            selectedDirection: currentDirection?.name,
+                            directionId: currentDirection?.id ?? null,
                             is_imported: false,
                             directions: [{ 
-                                name: directions[0]?.name, 
-                                hasFileUpload: directions[0]?.hasFileUpload, 
+                                name: currentDirection?.name, 
+                                hasFileUpload: currentDirection?.hasFileUpload, 
                                 criteria 
                             }],
                             scores,
                             criterionComments,
-                            audioUrl: directions[0]?.hasFileUpload ? audioUrl : null,
+                            audioUrl: currentDirection?.hasFileUpload ? audioUrl : null,
                             isDraft: saveAsDraft,
                             assignedMonth,
                             isCorrection: existingEvaluation?.isReevaluation || false,
@@ -893,11 +917,29 @@
             return (
                 <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 animate-fade-in">
                     <div className="bg-card p-10 rounded-xl shadow-hover w-full max-w-4xl max-h-[90vh] overflow-y-auto border border-primary/10">
-                        <h2 className="text-3xl font-bold mb-8 text-text">
+                        <h2 className="text-3xl font-bold mb-6 text-text">
                             {existingEvaluation?.isReevaluation ? 'Переоценка' : existingEvaluation?.isDraft ? 'Edit Draft Evaluation' : 'Оценка'} - Оператор: {operator?.name}
                         </h2>
 
-                        {directions[0]?.hasFileUpload && (
+                        {directions && directions.length > 1 && (
+                            <div className="mb-6">
+                                <label className="block mb-2 font-semibold text-text text-lg">Направление оценки</label>
+                                <select
+                                    value={selectedDirectionId ?? ''}
+                                    onChange={handleDirectionChange}
+                                    className="w-full max-w-md p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 bg-white text-text"
+                                >
+                                    {directions.map((d) => (
+                                        <option key={d.id} value={d.id}>{d.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        {directions && directions.length === 1 && (
+                            <p className="mb-6 text-muted font-medium">Направление: {currentDirection?.name}</p>
+                        )}
+
+                        {currentDirection?.hasFileUpload && (
                             <div className="mb-8 bg-background p-6 rounded-lg shadow-card">
                                 {!existingEvaluation?.isReevaluation && (
                                     <>
@@ -957,7 +999,7 @@
                                     type="text"
                                     value={appealDate}
                                     onChange={handleAppealDateChange}
-                                    placeholder={directions[0]?.hasFileUpload ? "DD-MM-YYYY HH:MM:SS" : "DD месяц HH:MM"}
+                                    placeholder={currentDirection?.hasFileUpload ? "DD-MM-YYYY HH:MM:SS" : "DD месяц HH:MM"}
                                     readOnly={isLocked}
                                     className={`w-full p-4 border border-muted/20 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary transition-all duration-300 ${isLocked ? 'bg-muted/10 opacity-70' : 'bg-white'} text-text`}
                                 />
@@ -965,12 +1007,12 @@
                         </div>
 
                         <label className="block mb-3 font-semibold text-text text-lg mt-8">Критерии оценивания</label>
-                        {directions.length === 0 || directions[0]?.criteria.length === 0 ? (
+                        {!currentDirection || !currentDirection.criteria?.length ? (
                             <p className="text-red-500 text-base">У направления нет критериев.</p>
                         ) : (
                             <div className="max-h-96 overflow-y-auto scrollbar-thin scrollbar-thumb-primary scrollbar-track-background">
                                 <div className="space-y-6">
-                                    {directions[0].criteria.map((criterion, index) => (
+                                    {currentDirection.criteria.map((criterion, index) => (
                                         <div key={index} className="bg-white p-6 rounded-lg shadow-card border border-muted/20 animate-fade-in">
                                             <div className="flex items-center justify-between mb-4">
                                                 <div className="flex items-center space-x-4">
@@ -1066,19 +1108,19 @@
 
                         <p className="mt-6 text-base font-semibold text-text">
                             Total Score: {
-                                directions[0]?.criteria.some((criterion, index) => 
+                                currentDirection?.criteria?.some((criterion, index) => 
                                     criterion.isCritical && scores[index] === 'Error'
                                 ) ? '0/100' : 
-                                `${directions[0]?.criteria.reduce((sum, criterion, index) => {
+                                `${currentDirection?.criteria?.reduce((sum, criterion, index) => {
                                     return sum + (!criterion.isCritical && ( scores[index] === 'Correct' || scores[index] === 'N/A' ? criterion.weight : (scores[index] === 'Deficiency' && criterion.deficiency  ? criterion.deficiency.weight : 0))); 
-                                }, 0)}/100`
+                                }, 0) ?? 0}/100`
                             }
                         </p>
 
                         {shownCriterionIndex !== null && (
                             <div className="fixed top-0 right-0 w-96 h-full max-h-screen bg-card shadow-hover border-l border-muted/20 z-50 p-8 animate-slide-in overflow-y-auto">
                                 <div className="flex justify-between items-center mb-6">
-                                    <h3 className="text-xl font-bold text-text">{directions[0]?.criteria[shownCriterionIndex]?.name}</h3>
+                                    <h3 className="text-xl font-bold text-text">{currentDirection?.criteria?.[shownCriterionIndex]?.name}</h3>
                                     <button
                                         onClick={() => setShownCriterionIndex(null)}
                                         className="text-red-500 hover:text-red-700 p-2 transition-colors duration-300"
@@ -1090,7 +1132,7 @@
                                     </button>
                                 </div>
                                 <div>
-                                    <FormattedDescription text={directions[0]?.criteria[shownCriterionIndex]?.value || 'Описания не имееться'} />
+                                    <FormattedDescription text={currentDirection?.criteria?.[shownCriterionIndex]?.value || 'Описания не имееться'} />
                                 </div>
                             </div>
                         )}
@@ -1609,6 +1651,7 @@
                                     combinedComment: evaluation.comment,
                                     appeal_date: evaluation.appeal_date || '-',
                                     selectedDirection: evaluation.direction?.name || selectedOperator?.direction || '-',
+                                    directionId: evaluation.direction?.id ?? null,
                                     directions: [{
                                     name: evaluation.direction?.name || selectedOperator?.direction || '-',
                                     hasFileUpload: evaluation.direction?.hasFileUpload ?? true,
@@ -1693,10 +1736,11 @@
                 audioUrl: evaluationData.audioUrl,
                 isDraft: evaluationData.isDraft,
                 selectedDirection: evaluationData.selectedDirection,
+                directionId: evaluationData.directionId ?? selectedOperator?.direction_id,
                 directions: evaluationData.directions,
                 phoneNumber: evaluationData.phoneNumber,
                 assignedMonth: evaluationData.assignedMonth,
-                direction_id: selectedOperator.direction_id,
+                direction_id: evaluationData.directionId ?? selectedOperator?.direction_id,
                 isCorrection: evaluationData.isCorrection,
                 appeal_date: evaluationData.appeal_date,
                 // preserve import flag so UI knows to show "Оценить" for imported calls
@@ -1771,6 +1815,7 @@
                         combinedComment: evaluation.comment,
                         appeal_date: evaluation.appeal_date || '-',
                         selectedDirection: evaluation.direction?.name || selectedOperator?.direction || '-',
+                        directionId: evaluation.direction?.id ?? null,
                         directions: [{
                         name: evaluation.direction?.name || selectedOperator?.direction || '-',
                         hasFileUpload: evaluation.direction?.hasFileUpload ?? true,
@@ -2277,7 +2322,7 @@
                             setEditingEvaluation(null);
                         }}
                         onSubmit={handleEvaluateCall}
-                        directions={directions.filter(d => d.id === selectedOperator?.direction_id)}
+                        directions={directions}
                         operator={selectedOperator}
                         selectedMonth={selectedMonth}
                         apiKey={apiKey}
