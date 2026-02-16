@@ -175,17 +175,62 @@
     <script type="text/babel">
         const { useState, useEffect, useRef } = React;
         const API_BASE_URL = 'https://otp-2-fos4.onrender.com';
+        const AUTH_REFRESH_URL = `${API_BASE_URL}/api/auth/refresh`;
+        let refreshPromise = null;
+
+        const readJsonSafe = async (response) => {
+            try {
+                return await response.json();
+            } catch (_) {
+                return null;
+            }
+        };
+
+        const authFetch = async (url, options = {}, retry = true) => {
+            const requestOptions = {
+                credentials: 'include',
+                ...options,
+                headers: {
+                    ...(options.headers || {})
+                }
+            };
+
+            const response = await fetch(url, requestOptions);
+            if (response.status !== 401 || !retry) {
+                return response;
+            }
+
+            const body = await readJsonSafe(response.clone());
+            if (!body || body.code !== 'TOKEN_EXPIRED') {
+                return response;
+            }
+
+            if (!refreshPromise) {
+                refreshPromise = fetch(AUTH_REFRESH_URL, {
+                    method: 'POST',
+                    credentials: 'include'
+                }).finally(() => {
+                    refreshPromise = null;
+                });
+            }
+
+            const refreshResponse = await refreshPromise;
+            if (!refreshResponse.ok) {
+                return response;
+            }
+
+            return authFetch(url, options, false);
+        };
         const audioUrlCache = {};
-        const getAudioUrlWithAuth = async (evaluationId, apiKey, userId) => {
+        const getAudioUrlWithAuth = async (evaluationId, userId) => {
             if (audioUrlCache[evaluationId]) {
                 return audioUrlCache[evaluationId];
             }
         
             try {
-                const response = await fetch(`${API_BASE_URL}/api/audio/${evaluationId}`, {
+                const response = await authFetch(`${API_BASE_URL}/api/audio/${evaluationId}`, {
                     method: 'GET',
                     headers: {
-                        'X-API-Key': apiKey,
                         'X-User-Id': userId
                     }
                 });
@@ -355,16 +400,20 @@
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/login`, {
+                    const response = await authFetch(`${API_BASE_URL}/api/login`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ login, password })
                     });
                     const data = await response.json();
                     if (data.status === 'success') {
-                        onLogin(data.apiKey, data.id, data.role, data.name);
-                        setError('');
-                        onClose();
+                        const loggedIn = onLogin(data.user || data);
+                        if (loggedIn !== false) {
+                            setError('');
+                            onClose();
+                        } else {
+                            setError('Invalid login response');
+                        }
                     } else {
                         setError(data.error || 'Invalid credentials');
                     }
@@ -415,7 +464,7 @@
             );
         };
 
-        const EvaluationModal = ({ isOpen, onClose, onSubmit, directions, operator, selectedMonth, apiKey, userId, userName, existingEvaluation }) => {
+        const EvaluationModal = ({ isOpen, onClose, onSubmit, directions, operator, selectedMonth, userId, userName, existingEvaluation }) => {
             const [callFile, setCallFile] = useState(null);
             const [audioUrl, setAudioUrl] = useState(null);
             const [audioError, setAudioError] = useState(null);
@@ -539,9 +588,9 @@
 
             useEffect(() => {
                 const loadAudio = async () => {
-                    if (existingEvaluation?.id && currentDirection?.hasFileUpload && apiKey && userId && !existingEvaluation?.is_imported) {
+                    if (existingEvaluation?.id && currentDirection?.hasFileUpload && userId && !existingEvaluation?.is_imported) {
                         setAudioError(null);
-                        const url = await getAudioUrlWithAuth(existingEvaluation.id, apiKey, userId);
+                        const url = await getAudioUrlWithAuth(existingEvaluation.id, userId);
                         if (url) {
                             setAudioUrl(url);
                         } else {
@@ -550,7 +599,7 @@
                     }
                 };
                 loadAudio();
-            }, [existingEvaluation, apiKey, userId, currentDirection?.hasFileUpload]);
+            }, [existingEvaluation, userId, currentDirection?.hasFileUpload]);
 
             const handleFileChange = (e) => {
                 const file = e.target.files[0];
@@ -846,10 +895,9 @@
                 }
 
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/call_evaluation`, {
+                    const response = await authFetch(`${API_BASE_URL}/api/call_evaluation`, {
                         method: 'POST',
                         headers: {
-                            'X-API-Key': apiKey,
                             'X-User-Id': userId
                         },
                         body: formData
@@ -893,10 +941,9 @@
             const handleDeleteDraft = async () => {
                 if (!existingEvaluation?.isDraft) return;
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/call_evaluation/${existingEvaluation.id}`, {
+                    const response = await authFetch(`${API_BASE_URL}/api/call_evaluation/${existingEvaluation.id}`, {
                         method: 'DELETE',
                         headers: {
-                            'X-API-Key': apiKey,
                             'X-User-Id': userId
                         }
                     });
@@ -1269,8 +1316,8 @@
             const [userName, setUserName] = useState(null);
             const [calls, setCalls] = useState([]);
             const [showEvaluationModal, setShowEvaluationModal] = useState(false);
-            const [showLoginModal, setShowLoginModal] = useState(true);
-            const [apiKey, setApiKey] = useState(null);
+            const [showLoginModal, setShowLoginModal] = useState(false);
+            const [authChecked, setAuthChecked] = useState(false);
             const [userId, setUserId] = useState(null);
             const [userRole, setUserRole] = useState(null);
             const [directions, setDirections] = useState([]);
@@ -1323,12 +1370,45 @@
             const monthOptions = getLast12Months();
 
             useEffect(() => {
-                if (userRole === 'admin' && apiKey && userId) {
+                let cancelled = false;
+
+                const bootstrapAuth = async () => {
+                    try {
+                        const response = await authFetch(`${API_BASE_URL}/api/auth/me`);
+                        const data = await readJsonSafe(response);
+                        const user = data?.user || data;
+
+                        if (!cancelled && response.ok && data?.status === 'success' && user?.id) {
+                            setUserId(user.id);
+                            setUserRole(user.role || null);
+                            setUserName(user.name || null);
+                            setShowLoginModal(false);
+                        } else if (!cancelled) {
+                            setShowLoginModal(true);
+                        }
+                    } catch (err) {
+                        if (!cancelled) {
+                            setShowLoginModal(true);
+                        }
+                    } finally {
+                        if (!cancelled) {
+                            setAuthChecked(true);
+                        }
+                    }
+                };
+
+                bootstrapAuth();
+                return () => {
+                    cancelled = true;
+                };
+            }, []);
+
+            useEffect(() => {
+                if (userRole === 'admin' && userId) {
                     const fetchSupervisors = async () => {
                         try {
-                            const response = await fetch(`${API_BASE_URL}/api/admin/sv_list`, {
+                            const response = await authFetch(`${API_BASE_URL}/api/admin/sv_list`, {
                                 headers: {
-                                    'X-API-Key': apiKey,
                                     'X-User-Id': userId
                                 }
                             });
@@ -1342,9 +1422,9 @@
                     };
                     fetchSupervisors();
                 }
-            }, [userRole, apiKey, userId]);
+            }, [userRole, userId]);
 
-            function SvRequestButton({ call, apiKey, userId, userRole, API_BASE_URL, fetchEvaluations }) {
+            function SvRequestButton({ call, userId, userRole, API_BASE_URL, fetchEvaluations }) {
                 const [showModal, setShowModal] = React.useState(false);
                 const [comment, setComment] = React.useState('');
                 const [loading, setLoading] = React.useState(false);
@@ -1354,11 +1434,10 @@
                     if (e && e.stopPropagation) e.stopPropagation();
                     setLoading(true);
                     try {
-                    const res = await fetch(`${API_BASE_URL}/api/call_evaluation/sv_request`, {
+                    const res = await authFetch(`${API_BASE_URL}/api/call_evaluation/sv_request`, {
                         method: 'POST',
                         headers: {
                         'Content-Type': 'application/json',
-                        'X-API-Key': apiKey,
                         'X-User-Id': userId
                         },
                         body: JSON.stringify({ call_id: call.id, comment })
@@ -1534,12 +1613,8 @@
                     try {
                         const decodedToken = decodeURIComponent(token);
                         const tokenData = JSON.parse(safeAtob(decodedToken));
-                        
-                        if (Date.now() - tokenData.timestamp < 300000) {
-                            setApiKey(tokenData.apiKey);
-                            setUserId(tokenData.userId);
-                            setUserRole(tokenData.role);
-                            setUserName(tokenData.name);
+
+                        if (!tokenData.timestamp || Date.now() - tokenData.timestamp < 300000) {
                             setOperatorFromToken({
                                 id: tokenData.operatorId,
                                 name: tokenData.operatorName
@@ -1551,11 +1626,11 @@
                             if (tokenData.supervisorId) {
                                 setSelectedSupervisor(tokenData.supervisorId);
                             }
-                            window.history.replaceState({}, document.title, window.location.pathname);
-                            setShowLoginModal(false);
                         }
                     } catch (e) {
                         console.error('Token decoding error:', e);
+                    } finally {
+                        window.history.replaceState({}, document.title, window.location.pathname);
                     }
                 }
             }, []);
@@ -1574,13 +1649,12 @@
             }, [operators, operatorFromToken]);
 
             useEffect(() => {
-                if (!apiKey || !userId) return;
+                if (!userId) return;
                 setIsLoading(true);
                 const fetchDirections = async () => {
                     try {
-                        const response = await fetch(`${API_BASE_URL}/api/admin/directions`, {
+                        const response = await authFetch(`${API_BASE_URL}/api/admin/directions`, {
                             headers: {
-                                'X-API-Key': apiKey,
                                 'X-User-Id': userId
                             }
                         });
@@ -1599,9 +1673,8 @@
                         if (userRole === 'admin' && selectedSupervisor) {
                             url = `${API_BASE_URL}/api/sv/data?id=${selectedSupervisor}`;
                         }
-                        const response = await fetch(url, {
+                        const response = await authFetch(url, {
                             headers: {
-                                'X-API-Key': apiKey,
                                 'X-User-Id': userId
                             }
                         });
@@ -1616,10 +1689,10 @@
 
                 Promise.all([fetchDirections(), fetchOperators()])
                     .finally(() => setIsLoading(false));
-            }, [apiKey, userId, userRole, selectedSupervisor]);
+            }, [userId, userRole, selectedSupervisor]);
 
             useEffect(() => {
-                if (!apiKey || !userId || !selectedOperator) {
+                if (!userId || !selectedOperator) {
                     setCalls([]);
                     return;
                 }
@@ -1628,11 +1701,14 @@
                 const signal = controller.signal;
 
                 const fetchEvaluations = async () => {
+                    if (!selectedOperator || !userId) {
+                        setCalls([]);
+                        return;
+                    }
                     setIsLoading(true);
                     try {
-                        const response = await fetch(`${API_BASE_URL}/api/call_evaluations?operator_id=${selectedOperator.id}`, {
+                        const response = await authFetch(`${API_BASE_URL}/api/call_evaluations?operator_id=${selectedOperator.id}`, {
                             headers: {
-                                'X-API-Key': apiKey,
                                 'X-User-Id': userId
                             },
                             signal
@@ -1696,7 +1772,7 @@
                 return () => {
                     controller.abort();
                 };
-            }, [apiKey, userId, selectedOperator, directions]);
+            }, [userId, selectedOperator, directions]);
 
             useEffect(() => {
                 setFromDate(null);
@@ -1710,12 +1786,34 @@
                 }
             }, [calls, selectedMonth, viewMode]);
 
-            const handleLogin = (key, id, role, name) => {
-                setApiKey(key);
-                setUserId(id);
-                setUserRole(role);
-                setUserName(name);
+            const handleLogin = (user) => {
+                if (!user || !user.id) {
+                    setShowLoginModal(true);
+                    return false;
+                }
+                setUserId(user.id);
+                setUserRole(user.role || null);
+                setUserName(user.name || null);
                 setShowLoginModal(false);
+                return true;
+            };
+
+            const handleLogout = () => {
+                setUserId(null);
+                setUserRole(null);
+                setUserName(null);
+                setOperators([]);
+                setSelectedOperator(null);
+                setDirections([]);
+                setCalls([]);
+                setSupervisors([]);
+                setSelectedSupervisor(null);
+                setExpandedDetails(null);
+                setShowEvaluationModal(false);
+                setEditingEvaluation(null);
+                setShowVersionsModal(false);
+                setVersionHistory([]);
+                setShowLoginModal(true);
             };
 
             const handleEvaluateCall = (evaluationData) => {
@@ -1790,13 +1888,16 @@
 
             // Функция для перезагрузки оценок
             const fetchEvaluations = async () => {
+            if (!selectedOperator || !userId) {
+                setCalls([]);
+                return;
+            }
             setIsLoading(true);
             try {
-                const response = await fetch(
+                const response = await authFetch(
                 `${API_BASE_URL}/api/call_evaluations?operator_id=${selectedOperator.id}`,
                 {
                     headers: {
-                    'X-API-Key': apiKey,
                     'X-User-Id': userId,
                     },
                 }
@@ -1867,7 +1968,7 @@
                     setLoadingCallId(callId);
                     try {
                         if (!call.audioUrl && call.directions?.[0]?.hasFileUpload) {
-                            const url = await getAudioUrlWithAuth(call.id, apiKey, userId);
+                            const url = await getAudioUrlWithAuth(call.id, userId);
                             if (url) {
                                 setCalls(prev =>
                                     prev.map(c => c.id === call.id ? { ...c, audioUrl: url } : c)
@@ -1896,11 +1997,10 @@
                 if (!confirm('Вы уверены, что хотите удалить импортированный звонок?')) return;
                 setIsLoading(true);
                 try {
-                    const response = await fetch(`${API_BASE_URL}/api/call_evaluations/${callId}`, {
+                    const response = await authFetch(`${API_BASE_URL}/api/call_evaluations/${callId}`, {
                         method: 'DELETE',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-API-Key': apiKey,
                             'X-User-Id': userId
                         }
                     });
@@ -1961,6 +2061,14 @@
                     .reduce((sum, call) => sum + parseFloat(call.totalScore), 0) / evaluationCount
                 : 0;
 
+            if (!authChecked) {
+                return (
+                    <div className="min-h-screen bg-background p-8 max-w-[1500px] mx-auto flex items-center justify-center">
+                        <div className="text-base text-muted">Checking session...</div>
+                    </div>
+                );
+            }
+
             return (
                 <div className="min-h-screen bg-background p-8 max-w-[1500px] mx-auto">
                     <header className="flex justify-between items-center mb-10 bg-card p-6 rounded-xl shadow-card border border-primary/10">
@@ -1970,7 +2078,7 @@
                                 <span className="text-base font-medium text-muted">Добро пожаловать, {userName}</span>
                             )}
                             <button
-                                onClick={() => setShowLoginModal(true)}
+                                onClick={handleLogout}
                                 className="bg-red-600 text-white px-8 py-4 rounded-lg hover:bg-red-700 transition-all duration-300 font-medium"
                             >
                                 Выход
@@ -2160,15 +2268,10 @@
                                                                     <>
                                                                         <SvRequestButton
                                                                             call={call}
-                                                                            apiKey={apiKey}
                                                                             userId={userId}
                                                                             userRole={userRole}
                                                                             API_BASE_URL={API_BASE_URL}
                                                                             fetchEvaluations={() => fetchEvaluations()}
-                                                                            openEvaluationModal={() => {
-                                                                                setEditingEvaluation({ ...call, isReevaluation: true, previous_version_id: call.id });
-                                                                                setShowEvaluationModal(true);
-                                                                            }}
                                                                         />
 
                                                                         {/* Существующие admin-кнопки (оставляем, но показываем только для admin) */}
@@ -2190,9 +2293,8 @@
                                                                                         onClick={async (e) => {
                                                                                             e.stopPropagation();
                                                                                             try {
-                                                                                                const response = await fetch(`${API_BASE_URL}/api/call_versions/${call.id}`, {
+                                                                                                const response = await authFetch(`${API_BASE_URL}/api/call_versions/${call.id}`, {
                                                                                                     headers: {
-                                                                                                        'X-API-Key': apiKey,
                                                                                                         'X-User-Id': userId
                                                                                                     }
                                                                                                 });
@@ -2313,7 +2415,7 @@
                     <LoginModal
                         isOpen={showLoginModal}
                         onClose={() => setShowLoginModal(false)}
-                        onLogin={(key, id, role, name) => handleLogin(key, id, role, name)}
+                        onLogin={handleLogin}
                     />
                     <EvaluationModal
                         isOpen={showEvaluationModal}
@@ -2325,7 +2427,6 @@
                         directions={directions}
                         operator={selectedOperator}
                         selectedMonth={selectedMonth}
-                        apiKey={apiKey}
                         userId={userId}
                         userName={userName}
                         existingEvaluation={editingEvaluation}
