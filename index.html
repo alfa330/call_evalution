@@ -713,25 +713,20 @@
         const [actualDuration,setActualDuration]=useState(null);
         const [durationMismatch,setDurationMismatch]=useState(false);
         const [selectedDirectionId,setSelectedDirectionId]=useState(null);
+        // currentDirection stored as state — avoids timing issues where useMemo fires
+        // before useEffect sets selectedDirectionId, resulting in null criteria
+        const [currentDirection,setCurrentDirection]=useState(null);
 
         const MIN_TOLERANCE_SEC=3; const PERCENT_TOLERANCE=0.15;
         const formatSeconds=(secs)=>{ if(secs===null||secs===undefined||isNaN(secs))return'—'; const total=Math.round(secs);const h=Math.floor(total/3600);const m=Math.floor((total%3600)/60);const s=total%60; if(h>0)return`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; return`${m}:${String(s).padStart(2,'0')}`; };
 
-        // Use loose == to handle string/number ID mismatches from API
-        const currentDirection = useMemo(() => {
+        // Find direction by id, handles string/number mismatch from API
+        const findDir = (id) => {
             if (!directions || !directions.length) return null;
-            if (selectedDirectionId != null) {
-                // eslint-disable-next-line eqeqeq
-                const found = directions.find(d => d.id == selectedDirectionId);
-                if (found) return found;
-            }
-            if (operator?.direction_id != null) {
-                // eslint-disable-next-line eqeqeq
-                const found = directions.find(d => d.id == operator.direction_id);
-                if (found) return found;
-            }
-            return directions[0] || null;
-        }, [directions, selectedDirectionId, operator?.direction_id]);
+            if (id == null) return directions[0];
+            // eslint-disable-next-line eqeqeq
+            return directions.find(d => d.id == id) || directions[0] || null;
+        };
 
         const isLocked = !!(existingEvaluation?.isReevaluation||existingEvaluation?.is_imported);
 
@@ -761,6 +756,7 @@
                 setSelectedDirectionId(initialDirId);
                 // eslint-disable-next-line eqeqeq
                 const initialDir=directions.find(d=>d.id==initialDirId)||directions[0];
+                setCurrentDirection(initialDir||null);
                 if(existingEvaluation){
                     if(existingEvaluation.is_imported){
                         const ed=existingEvaluation.duration||(existingEvaluation._rawEvaluation&&existingEvaluation._rawEvaluation.duration)||null;
@@ -807,6 +803,18 @@
             }
         },[isOpen,existingEvaluation,directions,selectedMonth,operator?.direction_id]);
 
+        // Sync currentDirection whenever selectedDirectionId or directions change
+        useEffect(()=>{
+            if(!directions||!directions.length)return;
+            if(selectedDirectionId==null){
+                setCurrentDirection(directions[0]||null);
+                return;
+            }
+            // eslint-disable-next-line eqeqeq
+            const dir=directions.find(d=>d.id==selectedDirectionId)||directions[0]||null;
+            setCurrentDirection(dir);
+        },[selectedDirectionId,directions]);
+
         useEffect(()=>{
             const loadAudio=async()=>{
                 if(existingEvaluation?.id&&currentDirection?.hasFileUpload&&userId&&!existingEvaluation?.is_imported){
@@ -849,6 +857,7 @@
             // eslint-disable-next-line eqeqeq
             const newDir = directions.find(d => d.id == rawVal) || directions[0];
             setSelectedDirectionId(newDir?.id ?? rawVal);
+            setCurrentDirection(newDir||null);
             if(newDir?.criteria){setScores(newDir.criteria.map(()=>'Correct'));setCriterionComments(newDir.criteria.map(()=>''));setCommentVisible(newDir.criteria.map(()=>false));}
         };
 
