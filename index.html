@@ -717,14 +717,50 @@
         const MIN_TOLERANCE_SEC=3; const PERCENT_TOLERANCE=0.15;
         const formatSeconds=(secs)=>{ if(secs===null||secs===undefined||isNaN(secs))return'—'; const total=Math.round(secs);const h=Math.floor(total/3600);const m=Math.floor((total%3600)/60);const s=total%60; if(h>0)return`${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`; return`${m}:${String(s).padStart(2,'0')}`; };
 
-        const currentDirection = directions&&directions.length>0?(directions.find(d=>d.id===selectedDirectionId)||directions[0]):null;
+        // Use loose == to handle string/number ID mismatches from API
+        const currentDirection = useMemo(() => {
+            if (!directions || !directions.length) return null;
+            if (selectedDirectionId != null) {
+                // eslint-disable-next-line eqeqeq
+                const found = directions.find(d => d.id == selectedDirectionId);
+                if (found) return found;
+            }
+            if (operator?.direction_id != null) {
+                // eslint-disable-next-line eqeqeq
+                const found = directions.find(d => d.id == operator.direction_id);
+                if (found) return found;
+            }
+            return directions[0] || null;
+        }, [directions, selectedDirectionId, operator?.direction_id]);
+
         const isLocked = !!(existingEvaluation?.isReevaluation||existingEvaluation?.is_imported);
 
         useEffect(()=>{
             if(isOpen&&directions&&directions.length>0){
-                const initialDirId=existingEvaluation?(existingEvaluation.directionId??existingEvaluation._rawEvaluation?.direction_id??directions.find(d=>d.name===existingEvaluation.selectedDirection)?.id??operator?.direction_id??directions[0]?.id):(operator?.direction_id??directions[0]?.id);
+                // Use loose == to handle string/number mismatches
+                const opDirId = operator?.direction_id;
+                let initialDirId;
+                if (existingEvaluation) {
+                    const rawId = existingEvaluation.directionId ?? existingEvaluation._rawEvaluation?.direction_id;
+                    if (rawId != null) {
+                        // eslint-disable-next-line eqeqeq
+                        const byId = directions.find(d => d.id == rawId);
+                        initialDirId = byId ? byId.id : null;
+                    }
+                    if (initialDirId == null && existingEvaluation.selectedDirection) {
+                        const byName = directions.find(d => d.name === existingEvaluation.selectedDirection);
+                        initialDirId = byName ? byName.id : null;
+                    }
+                }
+                if (initialDirId == null && opDirId != null) {
+                    // eslint-disable-next-line eqeqeq
+                    const byOp = directions.find(d => d.id == opDirId);
+                    initialDirId = byOp ? byOp.id : null;
+                }
+                if (initialDirId == null) initialDirId = directions[0]?.id;
                 setSelectedDirectionId(initialDirId);
-                const initialDir=directions.find(d=>d.id===initialDirId)||directions[0];
+                // eslint-disable-next-line eqeqeq
+                const initialDir=directions.find(d=>d.id==initialDirId)||directions[0];
                 if(existingEvaluation){
                     if(existingEvaluation.is_imported){
                         const ed=existingEvaluation.duration||(existingEvaluation._rawEvaluation&&existingEvaluation._rawEvaluation.duration)||null;
@@ -809,8 +845,10 @@
         const handlePhoneChange=(e)=>{ let value=e.target.value.replace(/[^0-9+]/g,'');setPhoneNumber(value);setPhoneError(value.length<5&&value.length>0?'Слишком короткий номер':''); };
 
         const handleDirectionChange=(e)=>{
-            const newId=Number(e.target.value)||e.target.value;setSelectedDirectionId(newId);
-            const newDir=directions.find(d=>d.id===newId)||directions[0];
+            const rawVal = e.target.value;
+            // eslint-disable-next-line eqeqeq
+            const newDir = directions.find(d => d.id == rawVal) || directions[0];
+            setSelectedDirectionId(newDir?.id ?? rawVal);
             if(newDir?.criteria){setScores(newDir.criteria.map(()=>'Correct'));setCriterionComments(newDir.criteria.map(()=>''));setCommentVisible(newDir.criteria.map(()=>false));}
         };
 
